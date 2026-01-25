@@ -8,9 +8,10 @@ import Game1Screen from './src/screens/Game1Screen';
 import Game2Screen from './src/screens/Game2Screen';
 import Game3Screen from './src/screens/Game3Screen';
 import Game4Screen from './src/screens/Game4Screen';
+import SettingsScreen from './src/screens/SettingsScreen';
 
 export default function App() {
-    const [currentScreen, setCurrentScreen] = useState<'home' | 'game1' | 'game2' | 'game3' | 'game4'>('home');
+    const [currentScreen, setCurrentScreen] = useState<'home' | 'game1' | 'game2' | 'game3' | 'game4' | 'settings'>('home');
 
     const renderScreen = () => {
         switch (currentScreen) {
@@ -18,6 +19,7 @@ export default function App() {
                 return (
                     <HomeScreen
                         onStartGame={(id) => setCurrentScreen(`game${id}` as any)}
+                        onOpenSettings={() => setCurrentScreen('settings')}
                     />
                 );
             case 'game1':
@@ -28,8 +30,13 @@ export default function App() {
                 return <Game3Screen onExit={() => setCurrentScreen('home')} />;
             case 'game4':
                 return <Game4Screen onExit={() => setCurrentScreen('home')} />;
+            case 'settings':
+                return <SettingsScreen onBack={() => setCurrentScreen('home')} />;
             default:
-                return <HomeScreen onStartGame={(id) => setCurrentScreen(`game${id}` as any)} />;
+                return <HomeScreen
+                    onStartGame={(id) => setCurrentScreen(`game${id}` as any)}
+                    onOpenSettings={() => setCurrentScreen('settings')}
+                />;
         }
     };
 

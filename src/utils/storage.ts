@@ -2,6 +2,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const HIGH_SCORES_KEY = '@high_scores';
+const SOUND_PREFERENCE_KEY = '@sound_preference';
 
 export interface HighScores {
     game1: number;
@@ -9,6 +10,8 @@ export interface HighScores {
     game3: number;
     game4: number;
 }
+
+export type SoundType = 'default' | 'piano' | 'guitar' | 'synth';
 
 const defaultHighScores: HighScores = {
     game1: 0,
@@ -37,5 +40,22 @@ export const saveHighScore = async (gameKey: keyof HighScores, score: number): P
         }
     } catch (e) {
         console.error('Failed to save high score', e);
+    }
+};
+
+export const getSoundPreference = async (): Promise<SoundType> => {
+    try {
+        const value = await AsyncStorage.getItem(SOUND_PREFERENCE_KEY);
+        return (value as SoundType) || 'default';
+    } catch (e) {
+        return 'default';
+    }
+};
+
+export const saveSoundPreference = async (sound: SoundType): Promise<void> => {
+    try {
+        await AsyncStorage.setItem(SOUND_PREFERENCE_KEY, sound);
+    } catch (e) {
+        console.error('Failed to save sound preference', e);
     }
 };

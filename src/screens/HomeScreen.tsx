@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, SafeAreaView } from 'react-native';
-import { Play, Music, Shuffle, Waves, Activity, Trophy } from 'lucide-react-native';
+import { Play, Music, Shuffle, Waves, Activity, Trophy, Settings } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { getHighScores, HighScores } from '../utils/storage';
 
@@ -37,9 +37,10 @@ const GAMES = [
 
 interface HomeProps {
     onStartGame: (gameId: number) => void;
+    onOpenSettings: () => void;
 }
 
-export default function HomeScreen({ onStartGame }: HomeProps) {
+export default function HomeScreen({ onStartGame, onOpenSettings }: HomeProps) {
     const [highScores, setHighScores] = useState<HighScores | null>(null);
 
     useEffect(() => {
@@ -56,7 +57,13 @@ export default function HomeScreen({ onStartGame }: HomeProps) {
             style={styles.container}
         >
             <SafeAreaView style={styles.safeArea}>
-                <View style={styles.header}>
+                <View style={[styles.header, { position: 'relative' }]}>
+                    <TouchableOpacity
+                        style={styles.settingsButton}
+                        onPress={onOpenSettings}
+                    >
+                        <Settings size={28} color="rgba(255,255,255,0.6)" />
+                    </TouchableOpacity>
                     <Text style={styles.title}>Intonation</Text>
                     <Text style={styles.subtitle}>Master your pitch perception</Text>
                 </View>
@@ -114,6 +121,12 @@ const styles = StyleSheet.create({
         marginBottom: 40,
         alignItems: 'center',
         paddingHorizontal: 20,
+    },
+    settingsButton: {
+        position: 'absolute',
+        top: -40,
+        right: 20,
+        padding: 10,
     },
     title: {
         fontSize: 48,
