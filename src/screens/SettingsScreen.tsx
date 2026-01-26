@@ -11,10 +11,17 @@ interface Props {
 }
 
 const SOUND_OPTIONS: { id: SoundType; label: string; icon: string }[] = [
-    { id: 'default', label: 'Default (Sine/Tri)', icon: 'musical-notes' },
-    { id: 'piano', label: 'Piano-ish', icon: 'musical-note' },
-    { id: 'guitar', label: 'Guitar-ish', icon: 'pulse' },
-    { id: 'synth', label: 'Retro Synth', icon: 'radio' },
+    { id: 'sound1', label: 'Default', icon: 'musical-notes' },
+    { id: 'sound2', label: 'Piano', icon: 'musical-note' },
+    { id: 'sound3', label: 'Flute', icon: 'leaf' },
+    { id: 'sound4', label: 'Xylophone', icon: 'apps' },
+    { id: 'sound5', label: 'Organ', icon: 'grid' },
+    { id: 'sound6', label: 'E-Piano', icon: 'flash' },
+    { id: 'sound7', label: 'Chimes', icon: 'notifications' },
+    { id: 'sound8', label: 'Space Bell', icon: 'planet' },
+    { id: 'sound9', label: 'Celestial', icon: 'sparkles' },
+    { id: 'sound10', label: 'Deep Organ', icon: 'reorder-four' },
+    { id: 'sound11', label: 'Ethereal', icon: 'eye' },
 ];
 
 export default function SettingsScreen({ onBack }: Props) {
@@ -23,8 +30,8 @@ export default function SettingsScreen({ onBack }: Props) {
     const handleSelectSound = async (type: SoundType) => {
         updateSoundType(type);
         await saveSoundPreference(type);
-        // Play a test note
-        playPitch(440, 0.5);
+        // Play a test note using the NEW sound type explicitly
+        playPitch(440, 0.5, type);
     };
 
     return (
@@ -69,13 +76,6 @@ export default function SettingsScreen({ onBack }: Props) {
                                 )}
                             </TouchableOpacity>
                         ))}
-                    </View>
-
-                    <View style={styles.infoBox}>
-                        <Ionicons name="information-circle-outline" size={20} color="#94a3b8" />
-                        <Text style={styles.infoText}>
-                            The selected sound will be used across all games.
-                        </Text>
                     </View>
                 </ScrollView>
             </SafeAreaView>

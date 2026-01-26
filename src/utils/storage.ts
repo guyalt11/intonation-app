@@ -11,7 +11,7 @@ export interface HighScores {
     game4: number;
 }
 
-export type SoundType = 'default' | 'piano' | 'guitar' | 'synth';
+export type SoundType = 'sound1' | 'sound2' | 'sound3' | 'sound4' | 'sound5' | 'sound6' | 'sound7' | 'sound8' | 'sound9' | 'sound10' | 'sound11';
 
 const defaultHighScores: HighScores = {
     game1: 0,
@@ -46,9 +46,9 @@ export const saveHighScore = async (gameKey: keyof HighScores, score: number): P
 export const getSoundPreference = async (): Promise<SoundType> => {
     try {
         const value = await AsyncStorage.getItem(SOUND_PREFERENCE_KEY);
-        return (value as SoundType) || 'default';
+        return (value as SoundType) || 'sound1';
     } catch (e) {
-        return 'default';
+        return 'sound1';
     }
 };
 
