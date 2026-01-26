@@ -8,21 +8,18 @@ const GAMES = [
     {
         id: 1,
         title: "Basic Mode",
-        desc: "Simple comparison",
         icon: <Shuffle size={24} color="white" />,
         colors: ['#a855f7', '#8b5cf6']
     },
     {
         id: 2,
-        title: "Consecutive Mode",
-        desc: "Each note becomes the next reference.",
+        title: "Fast Mode",
         icon: <Waves size={24} color="white" />,
         colors: ['#6366f1', '#4f46e5']
     },
     {
         id: 3,
         title: "Drone Mode",
-        desc: "A constant reference tone plays non-stop.",
         icon: <Music size={24} color="white" />,
         colors: ['#ec4899', '#d946ef']
     },
@@ -32,6 +29,13 @@ const GAMES = [
         desc: "6-7-1 sequence detection.",
         icon: <Activity size={24} color="white" />,
         colors: ['#f59e0b', '#d97706']
+    },
+    {
+        id: 5,
+        title: "Full Scale Mode",
+        desc: "Major scale (1-8) challenge.",
+        icon: <Play size={24} color="white" />,
+        colors: ['#10b981', '#059669']
     }
 ];
 
@@ -65,7 +69,6 @@ export default function HomeScreen({ onStartGame, onOpenSettings }: HomeProps) {
                         <Settings size={28} color="rgba(255,255,255,0.6)" />
                     </TouchableOpacity>
                     <Text style={styles.title}>Intonation</Text>
-                    <Text style={styles.subtitle}>Master your pitch perception</Text>
                 </View>
 
                 <ScrollView contentContainerStyle={styles.gamesList}>
@@ -88,9 +91,9 @@ export default function HomeScreen({ onStartGame, onOpenSettings }: HomeProps) {
                                     </LinearGradient>
                                     <View style={styles.cardContent}>
                                         <Text style={styles.cardTitle}>{game.title}</Text>
-                                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                        {game.desc && <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                                             <Text style={styles.cardDesc}>{game.desc}</Text>
-                                        </View>
+                                        </View>}
                                         {highScores && highScores[`game${game.id}` as keyof HighScores] > 0 && (
                                             <View style={styles.bestScore}>
                                                 <Trophy size={14} color="#f59e0b" />

@@ -9,6 +9,7 @@ export interface HighScores {
     game2: number;
     game3: number;
     game4: number;
+    game5: number;
 }
 
 export type SoundType = 'sound1' | 'sound2' | 'sound3' | 'sound4' | 'sound5' | 'sound6' | 'sound7' | 'sound8' | 'sound9' | 'sound10' | 'sound11';
@@ -18,6 +19,7 @@ const defaultHighScores: HighScores = {
     game2: 0,
     game3: 0,
     game4: 0,
+    game5: 0,
 };
 
 export const getHighScores = async (): Promise<HighScores> => {
