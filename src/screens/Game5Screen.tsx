@@ -1,13 +1,13 @@
 
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, SafeAreaView } from 'react-native';
+import { View, StyleSheet, SafeAreaView, Text, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import GameHeader from '../components/GameHeader';
 import PitchIndicator from '../components/PitchIndicator';
 import AnswerButtons from '../components/AnswerButtons';
 import GameOver from '../components/GameOver';
 import { useAudio } from '../context/AudioContext';
-import { saveHighScore } from '../utils/storage';
+import { saveHighScore, getDifficultyPreference, DifficultyMode } from '../utils/storage';
 
 const MIN_FREQ = 130.81;
 const MAX_FREQ = 1046.50;
@@ -46,10 +46,20 @@ export default function Game5Screen({ onExit }: Props) {
     const [lastGuess, setLastGuess] = useState<'u' | 'd' | null>(null);
     const [isPlaying, setIsPlaying] = useState(false);
     const [canInput, setCanInput] = useState(false);
+    const [hasSubmitted, setHasSubmitted] = useState(false);
+    const [difficulty, setDifficulty] = useState<DifficultyMode>('hard');
+
+    useEffect(() => {
+        const loadDiff = async () => {
+            const pref = await getDifficultyPreference();
+            setDifficulty(pref);
+        };
+        loadDiff();
+    }, []);
 
     const generateNextLevel = (targetLevel: number) => {
         const safeMin = MIN_FREQ * 1.1;
-        const safeMax = MAX_FREQ / 2.5; // Enough room for the full scale
+        const safeMax = MAX_FREQ / 2.5;
 
         const root = Math.random() * (safeMax - safeMin) + safeMin;
 
@@ -79,6 +89,7 @@ export default function Game5Screen({ onExit }: Props) {
         setIsCorrect(null);
         setLastGuess(null);
         setCanInput(false);
+        setHasSubmitted(false);
     };
 
     const startGame = () => {
@@ -96,11 +107,10 @@ export default function Game5Screen({ onExit }: Props) {
 
         for (let i = 0; i < notes.length; i++) {
             playPitch(notes[i], 0.5);
-            // Wait for note duration + gap
             await new Promise(r => setTimeout(r, 500 + 80));
         }
 
-        setCanInput(true);
+        if (!hasSubmitted) setCanInput(true);
         setIsPlaying(false);
     };
 
@@ -113,25 +123,26 @@ export default function Game5Screen({ onExit }: Props) {
         setIsCorrect(won);
         setLastGuess(guess);
         setCanInput(false);
+        setHasSubmitted(true);
+    };
 
-        setTimeout(() => {
-            if (won) {
+    const handleNext = () => {
+        if (isCorrect) {
+            const next = level + 1;
+            setLevel(next);
+            generateNextLevel(next);
+        } else {
+            const remaining = lives - 1;
+            setLives(remaining);
+            if (remaining <= 0) {
+                setGameState('gameover');
+                saveHighScore('game5', level);
+            } else {
                 const next = level + 1;
                 setLevel(next);
                 generateNextLevel(next);
-            } else {
-                const remaining = lives - 1;
-                setLives(remaining);
-                if (remaining <= 0) {
-                    setGameState('gameover');
-                    saveHighScore('game5', level);
-                } else {
-                    const next = level + 1;
-                    setLevel(next);
-                    generateNextLevel(next);
-                }
             }
-        }, 800);
+        }
     };
 
     useEffect(() => {
@@ -152,13 +163,50 @@ export default function Game5Screen({ onExit }: Props) {
                 {gameState === 'playing' && (
                     <View style={styles.gameContent}>
                         <GameHeader level={level} lives={lives} onHome={onExit} />
-                        <PitchIndicator isPlaying={isPlaying} isCorrect={isCorrect} />
-                        <AnswerButtons
-                            onGuess={handleGuess}
-                            disabled={!canInput}
-                            lastGuess={lastGuess}
-                            isCorrect={isCorrect}
-                        />
+
+                        <View style={{ flex: 1, justifyContent: 'center' }}>
+                            <PitchIndicator
+                                isPlaying={isPlaying}
+                                isCorrect={isCorrect}
+                                isClickable={difficulty === 'easy' && (canInput || hasSubmitted)}
+                                onPress={playSequence}
+                            />
+
+                            {hasSubmitted && (
+                                <View style={styles.feedbackContainer}>
+                                    <Text style={styles.feedbackText}>
+                                        Answer: {(errorIndex + 1)}{actualNote > targetNote ? '^' : 'v'}
+                                    </Text>
+                                </View>
+                            )}
+                        </View>
+
+                        <View style={styles.controlsContainer}>
+                            {!hasSubmitted ? (
+                                <AnswerButtons
+                                    onGuess={handleGuess}
+                                    disabled={!canInput}
+                                    lastGuess={lastGuess}
+                                    isCorrect={isCorrect}
+                                />
+                            ) : (
+                                <View style={styles.postAnswerButtons}>
+                                    <TouchableOpacity
+                                        style={[styles.actionButton, styles.repeatButton]}
+                                        onPress={playSequence}
+                                        disabled={isPlaying}
+                                    >
+                                        <Text style={styles.buttonText}>Repeat</Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity
+                                        style={[styles.actionButton, styles.nextButton]}
+                                        onPress={handleNext}
+                                    >
+                                        <Text style={styles.buttonText}>Next</Text>
+                                    </TouchableOpacity>
+                                </View>
+                            )}
+                        </View>
                     </View>
                 )}
                 {gameState === 'gameover' && (
@@ -173,4 +221,45 @@ const styles = StyleSheet.create({
     container: { flex: 1 },
     safeArea: { flex: 1 },
     gameContent: { flex: 1, justifyContent: 'space-between' },
+    feedbackContainer: {
+        alignItems: 'center',
+        marginTop: 20,
+    },
+    feedbackText: {
+        fontSize: 32,
+        fontWeight: 'bold',
+        color: '#10b981',
+        textShadowColor: 'rgba(16, 185, 129, 0.5)',
+        textShadowOffset: { width: 0, height: 0 },
+        textShadowRadius: 10,
+    },
+    controlsContainer: {
+        paddingBottom: 40,
+    },
+    postAnswerButtons: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        gap: 20,
+        paddingHorizontal: 20,
+    },
+    actionButton: {
+        paddingVertical: 15,
+        paddingHorizontal: 30,
+        borderRadius: 12,
+        minWidth: 140,
+        alignItems: 'center',
+    },
+    repeatButton: {
+        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.2)',
+    },
+    nextButton: {
+        backgroundColor: '#10b981',
+    },
+    buttonText: {
+        color: 'white',
+        fontSize: 18,
+        fontWeight: '600',
+    }
 });

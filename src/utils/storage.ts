@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const HIGH_SCORES_KEY = '@high_scores';
 const SOUND_PREFERENCE_KEY = '@sound_preference';
+const DIFFICULTY_PREFERENCE_KEY = '@difficulty_preference';
 
 export interface HighScores {
     game1: number;
@@ -13,6 +14,7 @@ export interface HighScores {
 }
 
 export type SoundType = 'sound1' | 'sound2' | 'sound3' | 'sound4' | 'sound5' | 'sound6' | 'sound7' | 'sound8' | 'sound9' | 'sound10' | 'sound11';
+export type DifficultyMode = 'easy' | 'hard';
 
 const defaultHighScores: HighScores = {
     game1: 0,
@@ -59,5 +61,22 @@ export const saveSoundPreference = async (sound: SoundType): Promise<void> => {
         await AsyncStorage.setItem(SOUND_PREFERENCE_KEY, sound);
     } catch (e) {
         console.error('Failed to save sound preference', e);
+    }
+};
+
+export const getDifficultyPreference = async (): Promise<DifficultyMode> => {
+    try {
+        const value = await AsyncStorage.getItem(DIFFICULTY_PREFERENCE_KEY);
+        return (value as DifficultyMode) || 'hard';
+    } catch (e) {
+        return 'hard';
+    }
+};
+
+export const saveDifficultyPreference = async (mode: DifficultyMode): Promise<void> => {
+    try {
+        await AsyncStorage.setItem(DIFFICULTY_PREFERENCE_KEY, mode);
+    } catch (e) {
+        console.error('Failed to save difficulty preference', e);
     }
 };

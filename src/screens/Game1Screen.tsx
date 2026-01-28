@@ -7,7 +7,7 @@ import PitchIndicator from '../components/PitchIndicator';
 import AnswerButtons from '../components/AnswerButtons';
 import GameOver from '../components/GameOver';
 import { useAudio } from '../context/AudioContext';
-import { saveHighScore } from '../utils/storage';
+import { saveHighScore, getDifficultyPreference, DifficultyMode } from '../utils/storage';
 
 const MIN_FREQ = 130.81;   // C3
 const MAX_FREQ = 1046.50;  // C6
@@ -32,6 +32,15 @@ export default function Game1Screen({ onExit }: Props) {
     const [lastGuess, setLastGuess] = useState<'u' | 'd' | null>(null);
     const [isPlaying, setIsPlaying] = useState(false);
     const [canInput, setCanInput] = useState(false);
+    const [difficulty, setDifficulty] = useState<DifficultyMode>('hard');
+
+    useEffect(() => {
+        const loadDiff = async () => {
+            const pref = await getDifficultyPreference();
+            setDifficulty(pref);
+        };
+        loadDiff();
+    }, []);
 
     const generateNextLevel = (targetLevel: number) => {
         const safeMin = MIN_FREQ * 1.1;
@@ -138,6 +147,8 @@ export default function Game1Screen({ onExit }: Props) {
                         <PitchIndicator
                             isPlaying={isPlaying}
                             isCorrect={isCorrect}
+                            isClickable={difficulty === 'easy' && canInput}
+                            onPress={playSequence}
                         />
 
                         <AnswerButtons

@@ -4,7 +4,8 @@ import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView } fr
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useAudio } from '../context/AudioContext';
-import { saveSoundPreference, SoundType } from '../utils/storage';
+import { saveSoundPreference, getDifficultyPreference, saveDifficultyPreference, SoundType, DifficultyMode } from '../utils/storage';
+import { useState, useEffect } from 'react';
 
 interface Props {
     onBack: () => void;
@@ -26,12 +27,27 @@ const SOUND_OPTIONS: { id: SoundType; label: string; icon: string }[] = [
 
 export default function SettingsScreen({ onBack }: Props) {
     const { soundType, updateSoundType, playPitch } = useAudio();
+    const [difficulty, setDifficulty] = useState<DifficultyMode>('hard');
+
+    useEffect(() => {
+        loadDifficulty();
+    }, []);
+
+    const loadDifficulty = async () => {
+        const pref = await getDifficultyPreference();
+        setDifficulty(pref);
+    };
 
     const handleSelectSound = async (type: SoundType) => {
         updateSoundType(type);
         await saveSoundPreference(type);
         // Play a test note using the NEW sound type explicitly
         playPitch(440, 0.5, type);
+    };
+
+    const handleSelectDifficulty = async (mode: DifficultyMode) => {
+        setDifficulty(mode);
+        await saveDifficultyPreference(mode);
     };
 
     return (
@@ -46,6 +62,37 @@ export default function SettingsScreen({ onBack }: Props) {
                 </View>
 
                 <ScrollView contentContainerStyle={styles.content}>
+                    <Text style={styles.sectionTitle}>Difficulty</Text>
+                    <View style={[styles.optionsContainer, { marginBottom: 32 }]}>
+                        {(['easy', 'hard'] as DifficultyMode[]).map((mode) => (
+                            <TouchableOpacity
+                                key={mode}
+                                style={[
+                                    styles.optionCard,
+                                    difficulty === mode && styles.selectedCard
+                                ]}
+                                onPress={() => handleSelectDifficulty(mode)}
+                            >
+                                <View style={styles.optionInfo}>
+                                    <Ionicons
+                                        name={mode === 'easy' ? 'cafe-outline' : 'flame-outline'}
+                                        size={24}
+                                        color={difficulty === mode ? '#a855f7' : '#94a3b8'}
+                                    />
+                                    <Text style={[
+                                        styles.optionLabel,
+                                        difficulty === mode && styles.selectedLabel
+                                    ]}>
+                                        {mode.charAt(0).toUpperCase() + mode.slice(1)} Mode
+                                    </Text>
+                                </View>
+                                {difficulty === mode && (
+                                    <Ionicons name="checkmark-circle" size={20} color="#a855f7" />
+                                )}
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+
                     <Text style={styles.sectionTitle}>Choose Sound</Text>
 
                     <View style={styles.optionsContainer}>

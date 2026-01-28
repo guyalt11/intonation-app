@@ -1,28 +1,44 @@
 
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { Music } from 'lucide-react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { Music, RotateCcw } from 'lucide-react-native';
 
 interface Props {
     isPlaying: boolean;
     isCorrect: boolean | null;
+    onPress?: () => void;
+    isClickable?: boolean;
 }
 
-export default function PitchIndicator({ isPlaying, isCorrect }: Props) {
+export default function PitchIndicator({ isPlaying, isCorrect, onPress, isClickable }: Props) {
+    const Container = isClickable ? TouchableOpacity : View;
+
     return (
         <View style={styles.container}>
-            <View
+            <Container
+                activeOpacity={0.7}
+                onPress={onPress}
+                disabled={!isClickable || isPlaying}
                 style={[
                     styles.indicator,
-                    isPlaying && styles.playing
+                    isPlaying && styles.playing,
+                    isClickable && styles.clickable
                 ]}
             >
-                <Music size={40} color={isPlaying ? "#fff" : "rgba(255,255,255,0.3)"} />
-            </View>
+                {isClickable && !isPlaying && (
+                    <View style={styles.repeatIcon}>
+                        <RotateCcw size={16} color="rgba(255,255,255,0.4)" />
+                    </View>
+                )}
+                <Music size={40} color={isPlaying ? "#fff" : (isClickable ? "rgba(255,255,255,0.6)" : "rgba(255,255,255,0.3)")} />
+            </Container>
 
             <View style={styles.feedbackContainer}>
                 {isCorrect === true && <Text style={styles.correctText}>Correct!</Text>}
                 {isCorrect === false && <Text style={styles.wrongText}>Wrong!</Text>}
+                {isClickable && !isPlaying && isCorrect === null && (
+                    <Text style={styles.tapText}>Tap to repeat</Text>
+                )}
             </View>
         </View>
     );
@@ -64,5 +80,19 @@ const styles = StyleSheet.create({
         color: '#ef4444',
         fontSize: 24,
         fontWeight: 'bold',
+    },
+    clickable: {
+        borderColor: 'rgba(99, 102, 241, 0.4)',
+        borderStyle: 'dashed',
+    },
+    repeatIcon: {
+        position: 'absolute',
+        top: 10,
+        right: 10,
+    },
+    tapText: {
+        color: 'rgba(255,255,255,0.4)',
+        fontSize: 12,
+        marginTop: 4,
     }
 });
