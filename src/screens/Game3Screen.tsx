@@ -21,7 +21,7 @@ interface Props {
 }
 
 export default function Game3Screen({ onExit }: Props) {
-    const { playPitch, createDrone } = useAudio();
+    const { playPitch, createDrone, stopAll } = useAudio();
     const [gameState, setGameState] = useState<'playing' | 'gameover'>('playing');
     const [level, setLevel] = useState(1);
     const [lives, setLives] = useState(3);
@@ -86,7 +86,7 @@ export default function Game3Screen({ onExit }: Props) {
             await new Promise(r => setTimeout(r, 1000));
         }
 
-        playPitch(secondFreq, 0.8);
+        await playPitch(secondFreq, 0.8);
         await new Promise(r => setTimeout(r, 800));
 
         setIsPlaying(false);
@@ -127,10 +127,17 @@ export default function Game3Screen({ onExit }: Props) {
         }, 800);
     };
 
+    const handleExit = () => {
+        if (droneRef.current) droneRef.current.stop();
+        stopAll();
+        onExit();
+    };
+
     useEffect(() => {
         startGame();
         return () => {
             if (droneRef.current) droneRef.current.stop();
+            stopAll();
         };
     }, []);
 
@@ -147,7 +154,7 @@ export default function Game3Screen({ onExit }: Props) {
             <SafeAreaView style={styles.safeArea}>
                 {gameState === 'playing' && (
                     <View style={styles.gameContent}>
-                        <GameHeader level={level} lives={lives} onHome={onExit} />
+                        <GameHeader level={level} lives={lives} onHome={handleExit} />
 
                         <View style={{ alignItems: 'center' }}>
                             <PitchIndicator
@@ -168,7 +175,7 @@ export default function Game3Screen({ onExit }: Props) {
                 )}
 
                 {gameState === 'gameover' && (
-                    <GameOver level={level} onRestart={startGame} onExit={onExit} />
+                    <GameOver level={level} onRestart={startGame} onExit={handleExit} />
                 )}
             </SafeAreaView>
         </LinearGradient>

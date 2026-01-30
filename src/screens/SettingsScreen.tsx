@@ -1,11 +1,12 @@
 
 import React from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useAudio } from '../context/AudioContext';
-import { saveSoundPreference, getDifficultyPreference, saveDifficultyPreference, SoundType, DifficultyMode } from '../utils/storage';
+import { saveSoundPreference, getDifficultyPreference, saveDifficultyPreference, getPauseDuration, savePauseDuration, resetHighScores, SoundType, DifficultyMode } from '../utils/storage';
 import { useState, useEffect } from 'react';
+import PauseSlider from '../components/PauseSlider';
 
 interface Props {
     onBack: () => void;
@@ -28,14 +29,21 @@ const SOUND_OPTIONS: { id: SoundType; label: string; icon: string }[] = [
 export default function SettingsScreen({ onBack }: Props) {
     const { soundType, updateSoundType, playPitch } = useAudio();
     const [difficulty, setDifficulty] = useState<DifficultyMode>('hard');
+    const [pauseDuration, setPauseDuration] = useState(100);
 
     useEffect(() => {
         loadDifficulty();
+        loadPauseDuration();
     }, []);
 
     const loadDifficulty = async () => {
         const pref = await getDifficultyPreference();
         setDifficulty(pref);
+    };
+
+    const loadPauseDuration = async () => {
+        const pref = await getPauseDuration();
+        setPauseDuration(pref);
     };
 
     const handleSelectSound = async (type: SoundType) => {
@@ -48,6 +56,29 @@ export default function SettingsScreen({ onBack }: Props) {
     const handleSelectDifficulty = async (mode: DifficultyMode) => {
         setDifficulty(mode);
         await saveDifficultyPreference(mode);
+    };
+
+    const handlePauseChange = async (val: number) => {
+        setPauseDuration(val);
+        await savePauseDuration(val);
+    };
+
+    const handleResetHighScores = () => {
+        Alert.alert(
+            "Reset Highscores",
+            "Are you sure you want to reset all highscores? This cannot be undone.",
+            [
+                { text: "Cancel", style: "cancel" },
+                {
+                    text: "Reset",
+                    style: "destructive",
+                    onPress: async () => {
+                        await resetHighScores();
+                        Alert.alert("Success", "All highscores have been reset.");
+                    }
+                }
+            ]
+        );
     };
 
     return (
@@ -93,6 +124,15 @@ export default function SettingsScreen({ onBack }: Props) {
                         ))}
                     </View>
 
+                    <Text style={styles.sectionTitle}>Pause Between Notes</Text>
+                    <PauseSlider
+                        value={pauseDuration}
+                        onValueChange={handlePauseChange}
+                        min={0}
+                        max={1000}
+                    />
+                    <View style={{ marginBottom: 32 }} />
+
                     <Text style={styles.sectionTitle}>Choose Sound</Text>
 
                     <View style={styles.optionsContainer}>
@@ -124,6 +164,17 @@ export default function SettingsScreen({ onBack }: Props) {
                             </TouchableOpacity>
                         ))}
                     </View>
+
+                    <View style={styles.dangerZone}>
+                        <Text style={styles.sectionTitleDanger}>Danger Zone</Text>
+                        <TouchableOpacity
+                            style={styles.resetButton}
+                            onPress={handleResetHighScores}
+                        >
+                            <Ionicons name="trash-outline" size={24} color="#ef4444" />
+                            <Text style={styles.resetButtonText}>Reset All Highscores</Text>
+                        </TouchableOpacity>
+                    </View>
                 </ScrollView>
             </SafeAreaView>
         </LinearGradient>
@@ -154,13 +205,23 @@ const styles = StyleSheet.create({
     },
     content: {
         padding: 20,
+        paddingBottom: 40,
     },
     sectionTitle: {
-        fontSize: 16,
+        fontSize: 14,
         color: '#94a3b8',
         marginBottom: 16,
         textTransform: 'uppercase',
         letterSpacing: 1,
+        fontWeight: 'bold',
+    },
+    sectionTitleDanger: {
+        fontSize: 14,
+        color: '#ef4444',
+        marginBottom: 16,
+        textTransform: 'uppercase',
+        letterSpacing: 1,
+        fontWeight: 'bold',
     },
     optionsContainer: {
         gap: 12,
@@ -192,18 +253,26 @@ const styles = StyleSheet.create({
         color: 'white',
         fontWeight: '600',
     },
-    infoBox: {
+    dangerZone: {
+        marginTop: 48,
+        paddingTop: 32,
+        borderTopWidth: 1,
+        borderTopColor: 'rgba(239, 68, 68, 0.2)',
+    },
+    resetButton: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 8,
-        marginTop: 24,
-        padding: 12,
-        backgroundColor: 'rgba(255, 255, 255, 0.03)',
-        borderRadius: 8,
+        gap: 12,
+        backgroundColor: 'rgba(239, 68, 68, 0.1)',
+        padding: 16,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: 'rgba(239, 68, 68, 0.2)',
     },
-    infoText: {
-        flex: 1,
-        color: '#94a3b8',
-        fontSize: 12,
+    resetButtonText: {
+        color: '#ef4444',
+        fontSize: 16,
+        fontWeight: '600',
     },
 });
+

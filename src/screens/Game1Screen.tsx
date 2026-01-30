@@ -7,7 +7,7 @@ import PitchIndicator from '../components/PitchIndicator';
 import AnswerButtons from '../components/AnswerButtons';
 import GameOver from '../components/GameOver';
 import { useAudio } from '../context/AudioContext';
-import { saveHighScore, getDifficultyPreference, DifficultyMode } from '../utils/storage';
+import { saveHighScore, getDifficultyPreference, DifficultyMode, getPauseDuration } from '../utils/storage';
 
 const MIN_FREQ = 130.81;   // C3
 const MAX_FREQ = 1046.50;  // C6
@@ -22,7 +22,7 @@ interface Props {
 }
 
 export default function Game1Screen({ onExit }: Props) {
-    const { playPitch } = useAudio();
+    const { playPitch, stopAll } = useAudio();
     const [gameState, setGameState] = useState<'playing' | 'gameover'>('playing');
     const [level, setLevel] = useState(1);
     const [lives, setLives] = useState(3);
@@ -33,13 +33,16 @@ export default function Game1Screen({ onExit }: Props) {
     const [isPlaying, setIsPlaying] = useState(false);
     const [canInput, setCanInput] = useState(false);
     const [difficulty, setDifficulty] = useState<DifficultyMode>('hard');
+    const [waitTime, setWaitTime] = useState<number | null>(null);
 
     useEffect(() => {
-        const loadDiff = async () => {
-            const pref = await getDifficultyPreference();
-            setDifficulty(pref);
+        const loadPrefs = async () => {
+            const diffPref = await getDifficultyPreference();
+            setDifficulty(diffPref);
+            const pausePref = await getPauseDuration();
+            setWaitTime(pausePref);
         };
-        loadDiff();
+        loadPrefs();
     }, []);
 
     const generateNextLevel = (targetLevel: number) => {
@@ -75,14 +78,17 @@ export default function Game1Screen({ onExit }: Props) {
     };
 
     const playSequence = async () => {
-        if (isPlaying) return;
+        if (isPlaying || waitTime === null) return;
+        const dur = 500;
 
         setIsPlaying(true);
         setCanInput(false);
-        playPitch(firstFreq, 0.8);
-        await new Promise(r => setTimeout(r, 800 + 100)); // 0.8s duration + 0.1s gap
-        playPitch(secondFreq, 0.8);
-        await new Promise(r => setTimeout(r, 800)); // wait for second note to finish
+        await playPitch(firstFreq, dur / 1000);
+
+        await new Promise(r => setTimeout(r, Math.max(0, dur + waitTime - 50)));
+
+        await playPitch(secondFreq, dur / 1000);
+        await new Promise(r => setTimeout(r, dur));
 
         setIsPlaying(false);
         setCanInput(true);
@@ -118,15 +124,21 @@ export default function Game1Screen({ onExit }: Props) {
         }, 800);
     };
 
+    const handleExit = () => {
+        stopAll();
+        onExit();
+    };
+
     useEffect(() => {
         startGame();
+        return () => stopAll();
     }, []);
 
     useEffect(() => {
-        if (gameState === 'playing' && firstFreq) {
+        if (gameState === 'playing' && firstFreq && waitTime !== null) {
             playSequence();
         }
-    }, [firstFreq, gameState]);
+    }, [firstFreq, gameState, waitTime]);
 
     // Gradient colors for Game 1
     const bgColors = ['#a855f7', '#8b5cf6'];
@@ -141,7 +153,7 @@ export default function Game1Screen({ onExit }: Props) {
                         <GameHeader
                             level={level}
                             lives={lives}
-                            onHome={onExit}
+                            onHome={handleExit}
                         />
 
                         <PitchIndicator
@@ -164,7 +176,7 @@ export default function Game1Screen({ onExit }: Props) {
                     <GameOver
                         level={level}
                         onRestart={startGame}
-                        onExit={onExit}
+                        onExit={handleExit}
                     />
                 )}
             </SafeAreaView>

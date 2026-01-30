@@ -5,8 +5,9 @@ import { getSoundPreference, SoundType } from '../utils/storage';
 // Web implementation uses the browser's native AudioContext
 
 interface AudioContextType {
-    playPitch: (freq: number, duration?: number, overrideSoundType?: SoundType) => void;
+    playPitch: (freq: number, duration?: number, overrideSoundType?: SoundType) => Promise<void>;
     createDrone: (freq: number) => { stop: () => void };
+    stopAll: () => void;
     soundType: SoundType;
     updateSoundType: (type: SoundType) => void;
 }
@@ -15,6 +16,7 @@ const AudioGameContext = createContext<AudioContextType | null>(null);
 
 export const AudioProvider = ({ children }: { children: React.ReactNode }) => {
     const audioCtxRef = useRef<AudioContext | null>(null);
+    const activeOscillators = useRef<Set<OscillatorNode>>(new Set());
     const droneOscRef = useRef<OscillatorNode | null>(null);
     const droneGainRef = useRef<GainNode | null>(null);
     const [soundType, setSoundType] = useState<SoundType>('sound1');
@@ -41,6 +43,7 @@ export const AudioProvider = ({ children }: { children: React.ReactNode }) => {
     const applySoundSettings = (osc: OscillatorNode, gain: GainNode, freq: number, duration: number, soundTypeToUse: SoundType, isDrone: boolean = false) => {
         const ctx = audioCtxRef.current!;
         const currentTime = ctx.currentTime;
+        const attack = 0.02;
 
         // Default base gain calculation
         const baseGain = isDrone ? 0.08 : 0.15;
@@ -55,34 +58,38 @@ export const AudioProvider = ({ children }: { children: React.ReactNode }) => {
                 p2Overnote.type = 'sine';
                 p2Overnote.frequency.setValueAtTime(freq * 2, currentTime);
                 p2Overgain.gain.setValueAtTime(0, currentTime);
-                p2Overgain.gain.linearRampToValueAtTime(normalizedGain * 0.3, currentTime + 0.05);
+                p2Overgain.gain.linearRampToValueAtTime(normalizedGain * 0.3, currentTime + attack);
                 p2Overgain.gain.exponentialRampToValueAtTime(0.001, currentTime + duration);
                 p2Overnote.connect(p2Overgain);
                 p2Overgain.connect(ctx.destination);
                 p2Overnote.start();
                 p2Overnote.stop(currentTime + duration);
+                activeOscillators.current.add(p2Overnote);
+                p2Overnote.onended = () => activeOscillators.current.delete(p2Overnote);
 
                 gain.gain.setValueAtTime(0, currentTime);
-                gain.gain.linearRampToValueAtTime(normalizedGain, currentTime + 0.02);
+                gain.gain.linearRampToValueAtTime(normalizedGain, currentTime + attack);
                 gain.gain.exponentialRampToValueAtTime(0.001, currentTime + duration);
                 break;
 
             case 'sound3': // Flute-ish
                 osc.type = 'triangle';
                 gain.gain.setValueAtTime(0, currentTime);
-                gain.gain.linearRampToValueAtTime(normalizedGain * 0.8, currentTime + 0.15);
+                gain.gain.linearRampToValueAtTime(normalizedGain * 0.8, currentTime + 0.05);
                 gain.gain.exponentialRampToValueAtTime(0.001, currentTime + duration);
                 const s3Noise = ctx.createOscillator();
                 const s3NoiseGain = ctx.createGain();
                 s3Noise.type = 'sine';
                 s3Noise.frequency.setValueAtTime(freq * 4, currentTime);
                 s3NoiseGain.gain.setValueAtTime(0, currentTime);
-                s3NoiseGain.gain.linearRampToValueAtTime(normalizedGain * 0.1, currentTime + 0.1);
+                s3NoiseGain.gain.linearRampToValueAtTime(normalizedGain * 0.1, currentTime + 0.05);
                 s3NoiseGain.gain.exponentialRampToValueAtTime(0.001, currentTime + duration);
                 s3Noise.connect(s3NoiseGain);
                 s3NoiseGain.connect(ctx.destination);
                 s3Noise.start();
                 s3Noise.stop(currentTime + duration);
+                activeOscillators.current.add(s3Noise);
+                s3Noise.onended = () => activeOscillators.current.delete(s3Noise);
                 break;
 
             case 'sound4': // Xylophone
@@ -100,12 +107,14 @@ export const AudioProvider = ({ children }: { children: React.ReactNode }) => {
                 s4OverGain.connect(ctx.destination);
                 s4Over.start();
                 s4Over.stop(currentTime + duration * 0.2);
+                activeOscillators.current.add(s4Over);
+                s4Over.onended = () => activeOscillators.current.delete(s4Over);
                 break;
 
             case 'sound5': // Organ
                 osc.type = 'sine';
                 gain.gain.setValueAtTime(0, currentTime);
-                gain.gain.linearRampToValueAtTime(normalizedGain * 0.5, currentTime + 0.05);
+                gain.gain.linearRampToValueAtTime(normalizedGain * 0.5, currentTime + attack);
                 gain.gain.exponentialRampToValueAtTime(0.001, currentTime + duration);
                 [0.5, 2, 4].forEach(mult => {
                     const s5Ovc = ctx.createOscillator();
@@ -113,12 +122,14 @@ export const AudioProvider = ({ children }: { children: React.ReactNode }) => {
                     s5Ovc.type = 'sine';
                     s5Ovc.frequency.setValueAtTime(freq * mult, currentTime);
                     s5Ovg.gain.setValueAtTime(0, currentTime);
-                    s5Ovg.gain.linearRampToValueAtTime(normalizedGain * 0.2, currentTime + 0.05);
+                    s5Ovg.gain.linearRampToValueAtTime(normalizedGain * 0.2, currentTime + attack);
                     s5Ovg.gain.exponentialRampToValueAtTime(0.001, currentTime + duration);
                     s5Ovc.connect(s5Ovg);
                     s5Ovg.connect(ctx.destination);
                     s5Ovc.start();
                     s5Ovc.stop(currentTime + duration);
+                    activeOscillators.current.add(s5Ovc);
+                    s5Ovc.onended = () => activeOscillators.current.delete(s5Ovc);
                 });
                 break;
 
@@ -136,6 +147,8 @@ export const AudioProvider = ({ children }: { children: React.ReactNode }) => {
                 s6ModGain.connect(osc.frequency);
                 s6Mod.start();
                 s6Mod.stop(currentTime + duration);
+                activeOscillators.current.add(s6Mod);
+                s6Mod.onended = () => activeOscillators.current.delete(s6Mod);
                 break;
 
             case 'sound7': // Chimes
@@ -154,6 +167,8 @@ export const AudioProvider = ({ children }: { children: React.ReactNode }) => {
                     s7G.connect(ctx.destination);
                     s7O.start();
                     s7O.stop(currentTime + duration);
+                    activeOscillators.current.add(s7O);
+                    s7O.onended = () => activeOscillators.current.delete(s7O);
                 });
                 break;
 
@@ -171,50 +186,56 @@ export const AudioProvider = ({ children }: { children: React.ReactNode }) => {
                 s8ModG.connect(osc.frequency);
                 s8Mod.start();
                 s8Mod.stop(currentTime + duration);
+                activeOscillators.current.add(s8Mod);
+                s8Mod.onended = () => activeOscillators.current.delete(s8Mod);
                 break;
 
             case 'sound9': // Celestial
                 osc.type = 'sine';
                 gain.gain.setValueAtTime(0, currentTime);
-                gain.gain.linearRampToValueAtTime(normalizedGain * 0.4, currentTime + 0.1);
+                gain.gain.linearRampToValueAtTime(normalizedGain * 0.4, currentTime + 0.05);
                 gain.gain.exponentialRampToValueAtTime(0.001, currentTime + duration);
                 [2, 3, 4, 5, 6].forEach(m => {
                     const s9O = ctx.createOscillator();
                     const s9G = ctx.createGain();
                     s9O.frequency.setValueAtTime(freq * m, currentTime);
                     s9G.gain.setValueAtTime(0, currentTime);
-                    s9G.gain.linearRampToValueAtTime(normalizedGain * 0.05, currentTime + 0.2);
+                    s9G.gain.linearRampToValueAtTime(normalizedGain * 0.05, currentTime + 0.1);
                     s9G.gain.exponentialRampToValueAtTime(0.001, currentTime + duration);
                     s9O.connect(s9G);
                     s9G.connect(ctx.destination);
                     s9O.start();
                     s9O.stop(currentTime + duration);
+                    activeOscillators.current.add(s9O);
+                    s9O.onended = () => activeOscillators.current.delete(s9O);
                 });
                 break;
 
             case 'sound10': // Deep Organ
                 osc.type = 'sine';
                 gain.gain.setValueAtTime(0, currentTime);
-                gain.gain.linearRampToValueAtTime(normalizedGain * 0.6, currentTime + 0.1);
+                gain.gain.linearRampToValueAtTime(normalizedGain * 0.6, currentTime + 0.05);
                 gain.gain.exponentialRampToValueAtTime(0.001, currentTime + duration);
                 [0.25, 0.5, 1, 1.5].forEach(m => {
                     const s10O = ctx.createOscillator();
                     const s10G = ctx.createGain();
                     s10O.frequency.setValueAtTime(freq * m, currentTime);
                     s10G.gain.setValueAtTime(0, currentTime);
-                    s10G.gain.linearRampToValueAtTime(normalizedGain * 0.2, currentTime + 0.1);
+                    s10G.gain.linearRampToValueAtTime(normalizedGain * 0.2, currentTime + 0.05);
                     s10G.gain.exponentialRampToValueAtTime(0.001, currentTime + duration);
                     s10O.connect(s10G);
                     s10G.connect(ctx.destination);
                     s10O.start();
                     s10O.stop(currentTime + duration);
+                    activeOscillators.current.add(s10O);
+                    s10O.onended = () => activeOscillators.current.delete(s10O);
                 });
                 break;
 
             case 'sound11': // Ethereal
                 osc.type = 'sine';
                 gain.gain.setValueAtTime(0, currentTime);
-                gain.gain.linearRampToValueAtTime(normalizedGain * 0.5, currentTime + duration * 0.5);
+                gain.gain.linearRampToValueAtTime(normalizedGain * 0.5, currentTime + duration * 0.3);
                 gain.gain.exponentialRampToValueAtTime(0.001, currentTime + duration);
                 const s11F = ctx.createBiquadFilter();
                 s11F.type = 'lowpass';
@@ -228,25 +249,43 @@ export const AudioProvider = ({ children }: { children: React.ReactNode }) => {
             default: // sound1 (Default)
                 osc.type = freq < 300 ? 'triangle' : 'sine';
                 gain.gain.setValueAtTime(0, currentTime);
-                gain.gain.linearRampToValueAtTime(normalizedGain, currentTime + 0.1);
+                gain.gain.linearRampToValueAtTime(normalizedGain, currentTime + attack);
                 gain.gain.exponentialRampToValueAtTime(0.001, currentTime + duration);
                 break;
         }
     };
 
-    const playPitch = (freq: number, duration: number = 0.8, overrideSoundType?: SoundType) => {
-        const ctx = initAudio();
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
+    const playPitch = (freq: number, duration: number = 0.8, overrideSoundType?: SoundType): Promise<void> => {
+        return new Promise(resolve => {
+            const ctx = initAudio();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
 
-        osc.frequency.setValueAtTime(freq, ctx.currentTime);
-        applySoundSettings(osc, gain, freq, duration, overrideSoundType || soundType);
+            osc.frequency.setValueAtTime(freq, ctx.currentTime);
+            applySoundSettings(osc, gain, freq, duration, overrideSoundType || soundType);
 
-        osc.connect(gain);
-        gain.connect(ctx.destination);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
 
-        osc.start();
-        osc.stop(ctx.currentTime + duration);
+            osc.start();
+            osc.stop(ctx.currentTime + duration);
+            activeOscillators.current.add(osc);
+            osc.onended = () => {
+                activeOscillators.current.delete(osc);
+                resolve();
+            };
+        });
+    };
+
+    const stopAll = () => {
+        activeOscillators.current.forEach(osc => {
+            try { osc.stop(); } catch (e) { }
+        });
+        activeOscillators.current.clear();
+        if (droneOscRef.current) {
+            try { droneOscRef.current.stop(); } catch (e) { }
+            droneOscRef.current = null;
+        }
     };
 
     const createDrone = (freq: number) => {
@@ -303,7 +342,7 @@ export const AudioProvider = ({ children }: { children: React.ReactNode }) => {
     };
 
     return (
-        <AudioGameContext.Provider value={{ playPitch, createDrone, soundType, updateSoundType }}>
+        <AudioGameContext.Provider value={{ playPitch, createDrone, stopAll, soundType, updateSoundType }}>
             {children}
         </AudioGameContext.Provider>
     );

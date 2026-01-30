@@ -7,7 +7,7 @@ import PitchIndicator from '../components/PitchIndicator';
 import AnswerButtons from '../components/AnswerButtons';
 import GameOver from '../components/GameOver';
 import { useAudio } from '../context/AudioContext';
-import { saveHighScore, getDifficultyPreference, DifficultyMode } from '../utils/storage';
+import { saveHighScore, getDifficultyPreference, DifficultyMode, getPauseDuration } from '../utils/storage';
 
 const MIN_FREQ = 130.81;
 const MAX_FREQ = 1046.50;
@@ -21,7 +21,7 @@ interface Props {
 }
 
 export default function Game4Screen({ onExit }: Props) {
-    const { playPitch } = useAudio();
+    const { playPitch, stopAll } = useAudio();
     const [gameState, setGameState] = useState<'playing' | 'gameover'>('playing');
     const [level, setLevel] = useState(1);
     const [lives, setLives] = useState(3);
@@ -36,13 +36,16 @@ export default function Game4Screen({ onExit }: Props) {
     const [isPlaying, setIsPlaying] = useState(false);
     const [canInput, setCanInput] = useState(false);
     const [difficulty, setDifficulty] = useState<DifficultyMode>('hard');
+    const [waitTime, setWaitTime] = useState<number | null>(null);
 
     useEffect(() => {
-        const loadDiff = async () => {
-            const pref = await getDifficultyPreference();
-            setDifficulty(pref);
+        const loadPrefs = async () => {
+            const diffPref = await getDifficultyPreference();
+            setDifficulty(diffPref);
+            const pausePref = await getPauseDuration();
+            setWaitTime(pausePref);
         };
-        loadDiff();
+        loadPrefs();
     }, []);
 
     const generateNextLevel = (targetLevel: number) => {
@@ -83,19 +86,21 @@ export default function Game4Screen({ onExit }: Props) {
     };
 
     const playSequence = async () => {
-        if (isPlaying) return;
+        if (isPlaying || waitTime === null) return;
+        const dur1 = 600;
+        const dur2 = 800;
 
         setIsPlaying(true);
         setCanInput(false);
 
-        playPitch(rootFreq, 0.6);
-        await new Promise(r => setTimeout(r, 600 + 100));
-        playPitch(midFreq, 0.6);
-        await new Promise(r => setTimeout(r, 600 + 100));
+        await playPitch(rootFreq, dur1 / 1000);
+        await new Promise(r => setTimeout(r, Math.max(0, dur1 + waitTime - 50)));
+        await playPitch(midFreq, dur1 / 1000);
+        await new Promise(r => setTimeout(r, Math.max(0, dur1 + waitTime - 50)));
 
         setCanInput(true);
-        playPitch(actualFreq, 0.8);
-        await new Promise(r => setTimeout(r, 800)); // wait for full duration
+        await playPitch(actualFreq, dur2 / 1000);
+        await new Promise(r => setTimeout(r, dur2));
 
         setIsPlaying(false);
     };
@@ -130,15 +135,21 @@ export default function Game4Screen({ onExit }: Props) {
         }, 800);
     };
 
+    const handleExit = () => {
+        stopAll();
+        onExit();
+    };
+
     useEffect(() => {
         startGame();
+        return () => stopAll();
     }, []);
 
     useEffect(() => {
-        if (gameState === 'playing' && rootFreq) {
+        if (gameState === 'playing' && rootFreq && waitTime !== null) {
             playSequence();
         }
-    }, [rootFreq, gameState]);
+    }, [rootFreq, gameState, waitTime]);
 
     const bgDark = ['#1a1a2e', '#0c0c0e'] as const;
 
@@ -147,7 +158,7 @@ export default function Game4Screen({ onExit }: Props) {
             <SafeAreaView style={styles.safeArea}>
                 {gameState === 'playing' && (
                     <View style={styles.gameContent}>
-                        <GameHeader level={level} lives={lives} onHome={onExit} />
+                        <GameHeader level={level} lives={lives} onHome={handleExit} />
                         <PitchIndicator
                             isPlaying={isPlaying}
                             isCorrect={isCorrect}
@@ -163,7 +174,7 @@ export default function Game4Screen({ onExit }: Props) {
                     </View>
                 )}
                 {gameState === 'gameover' && (
-                    <GameOver level={level} onRestart={startGame} onExit={onExit} />
+                    <GameOver level={level} onRestart={startGame} onExit={handleExit} />
                 )}
             </SafeAreaView>
         </LinearGradient>

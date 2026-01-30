@@ -4,6 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const HIGH_SCORES_KEY = '@high_scores';
 const SOUND_PREFERENCE_KEY = '@sound_preference';
 const DIFFICULTY_PREFERENCE_KEY = '@difficulty_preference';
+const PAUSE_DURATION_KEY = '@pause_duration';
 
 export interface HighScores {
     game1: number;
@@ -78,5 +79,30 @@ export const saveDifficultyPreference = async (mode: DifficultyMode): Promise<vo
         await AsyncStorage.setItem(DIFFICULTY_PREFERENCE_KEY, mode);
     } catch (e) {
         console.error('Failed to save difficulty preference', e);
+    }
+};
+
+export const getPauseDuration = async (): Promise<number> => {
+    try {
+        const value = await AsyncStorage.getItem(PAUSE_DURATION_KEY);
+        return value != null ? parseInt(value, 10) : 100;
+    } catch (e) {
+        return 100;
+    }
+};
+
+export const savePauseDuration = async (duration: number): Promise<void> => {
+    try {
+        await AsyncStorage.setItem(PAUSE_DURATION_KEY, duration.toString());
+    } catch (e) {
+        console.error('Failed to save pause duration', e);
+    }
+};
+
+export const resetHighScores = async (): Promise<void> => {
+    try {
+        await AsyncStorage.setItem(HIGH_SCORES_KEY, JSON.stringify(defaultHighScores));
+    } catch (e) {
+        console.error('Failed to reset high scores', e);
     }
 };

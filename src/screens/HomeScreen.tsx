@@ -9,33 +9,33 @@ const GAMES = [
         id: 1,
         title: "Basic Mode",
         icon: <Shuffle size={24} color="white" />,
-        colors: ['#a855f7', '#8b5cf6']
+        colors: ['#a855f7', '#8b5cf6'] as const
     },
     {
         id: 2,
         title: "Fast Mode",
         icon: <Waves size={24} color="white" />,
-        colors: ['#6366f1', '#4f46e5']
+        colors: ['#6366f1', '#4f46e5'] as const
     },
     {
         id: 3,
         title: "Drone Mode",
         icon: <Music size={24} color="white" />,
-        colors: ['#ec4899', '#d946ef']
+        colors: ['#ec4899', '#d946ef'] as const
     },
     {
         id: 4,
         title: "Cadence Mode",
         desc: "6-7-1 sequence detection.",
         icon: <Activity size={24} color="white" />,
-        colors: ['#f59e0b', '#d97706']
+        colors: ['#f59e0b', '#d97706'] as const
     },
     {
         id: 5,
         title: "Full Scale Mode",
         desc: "Major scale (1-8) challenge.",
         icon: <Play size={24} color="white" />,
-        colors: ['#10b981', '#059669']
+        colors: ['#10b981', '#059669'] as const
     }
 ];
 
@@ -49,6 +49,7 @@ export default function HomeScreen({ onStartGame, onOpenSettings }: HomeProps) {
 
     useEffect(() => {
         const loadScores = async () => {
+            console.log('Fetching high scores in HomeScreen...');
             const scores = await getHighScores();
             setHighScores(scores);
         };

@@ -21,7 +21,7 @@ interface Props {
 }
 
 export default function Game2Screen({ onExit }: Props) {
-    const { playPitch } = useAudio();
+    const { playPitch, stopAll } = useAudio();
     const [gameState, setGameState] = useState<'playing' | 'gameover'>('playing');
     const [level, setLevel] = useState(1);
     const [lives, setLives] = useState(3);
@@ -81,11 +81,11 @@ export default function Game2Screen({ onExit }: Props) {
         setCanInput(false);
 
         if (level === 1) {
-            playPitch(firstFreq, 0.8);
+            await playPitch(firstFreq, 0.8);
             await new Promise(r => setTimeout(r, 800 + 400));
         }
 
-        playPitch(secondFreq, 0.8);
+        await playPitch(secondFreq, 0.8);
         await new Promise(r => setTimeout(r, 800));
 
         setIsPlaying(false);
@@ -122,8 +122,14 @@ export default function Game2Screen({ onExit }: Props) {
         }, 800);
     };
 
+    const handleExit = () => {
+        stopAll();
+        onExit();
+    };
+
     useEffect(() => {
         startGame();
+        return () => stopAll();
     }, []);
 
     useEffect(() => {
@@ -142,7 +148,7 @@ export default function Game2Screen({ onExit }: Props) {
                         <GameHeader
                             level={level}
                             lives={lives}
-                            onHome={onExit}
+                            onHome={handleExit}
                         />
 
                         <PitchIndicator
@@ -165,7 +171,7 @@ export default function Game2Screen({ onExit }: Props) {
                     <GameOver
                         level={level}
                         onRestart={startGame}
-                        onExit={onExit}
+                        onExit={handleExit}
                     />
                 )}
             </SafeAreaView>
