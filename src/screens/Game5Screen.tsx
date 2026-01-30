@@ -6,7 +6,7 @@ import PitchIndicator from '../components/PitchIndicator';
 import AnswerButtons from '../components/AnswerButtons';
 import GameOver from '../components/GameOver';
 import { useAudio } from '../context/AudioContext';
-import { saveHighScore, getDifficultyPreference, DifficultyMode, getPauseDuration } from '../utils/storage';
+import { saveHighScore, getDifficultyPreference, DifficultyMode, getPauseDuration, getAdvanceModePreference, AdvanceMode } from '../utils/storage';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const BUTTON_GAP = 8;
@@ -54,6 +54,7 @@ export default function Game5Screen({ onExit }: Props) {
     const [canInput, setCanInput] = useState(false);
     const [hasSubmitted, setHasSubmitted] = useState(false);
     const [difficulty, setDifficulty] = useState<DifficultyMode>('hard');
+    const [advanceMode, setAdvanceMode] = useState<AdvanceMode>('fast');
     const [waitTime, setWaitTime] = useState<number | null>(null);
 
     const sequenceId = useRef(0);
@@ -62,6 +63,7 @@ export default function Game5Screen({ onExit }: Props) {
         (async () => {
             setDifficulty(await getDifficultyPreference());
             setWaitTime(await getPauseDuration());
+            setAdvanceMode(await getAdvanceModePreference());
         })();
     }, []);
 
@@ -116,9 +118,25 @@ export default function Game5Screen({ onExit }: Props) {
             await new Promise(r => setTimeout(r, 450 + waitTime));
         }
 
-        if (sequenceId.current === id && !hasSubmitted) {
-            setCanInput(true);
+        if (sequenceId.current === id) {
+            if (!hasSubmitted) setCanInput(true);
             setIsPlaying(false);
+        }
+    };
+
+    const handleNextManual = () => {
+        if (!hasSubmitted || isCorrect === null) return;
+
+        if (isCorrect) {
+            const next = level + 1;
+            setLevel(next);
+            generateNextLevel(next);
+        } else {
+            if (lives <= 0) {
+                setGameState('gameover');
+            } else {
+                generateNextLevel(level + 1);
+            }
         }
     };
 
@@ -130,23 +148,40 @@ export default function Game5Screen({ onExit }: Props) {
         setCanInput(false);
         setHasSubmitted(true);
 
-        setTimeout(() => {
+        if (advanceMode === 'fast') {
+            setTimeout(() => {
+                if (won) {
+                    const next = level + 1;
+                    setLevel(next);
+                    saveHighScore('game5', next);
+                    generateNextLevel(next);
+                } else {
+                    const remaining = lives - 1;
+                    setLives(remaining);
+                    if (remaining <= 0) {
+                        setGameState('gameover');
+                        saveHighScore('game5', level);
+                    } else {
+                        generateNextLevel(level + 1);
+                    }
+                }
+            }, 1200);
+        } else {
+            // Slow mode: save progress but don't auto-advance
             if (won) {
-                const next = level + 1;
-                setLevel(next);
-                saveHighScore('game5', next);
-                generateNextLevel(next);
+                saveHighScore('game5', level + 1);
             } else {
                 const remaining = lives - 1;
                 setLives(remaining);
                 if (remaining <= 0) {
-                    setGameState('gameover');
-                    saveHighScore('game5', level);
-                } else {
-                    generateNextLevel(level + 1);
+                    // Even in slow mode, if game over, go to game over screen after a delay
+                    setTimeout(() => {
+                        setGameState('gameover');
+                        saveHighScore('game5', level);
+                    }, 1200);
                 }
             }
-        }, 1200);
+        }
     };
 
     const getNoteButtonStyle = (num: number) => {
@@ -184,9 +219,25 @@ export default function Game5Screen({ onExit }: Props) {
                             <PitchIndicator
                                 isPlaying={isPlaying}
                                 isCorrect={isCorrect}
-                                isClickable={difficulty === 'easy' && (canInput || hasSubmitted)}
+                                isClickable={(difficulty === 'easy' || (hasSubmitted && advanceMode === 'slow'))}
                                 onPress={playSequence}
                             />
+
+                            {hasSubmitted && advanceMode === 'slow' && lives > 0 && (
+                                <TouchableOpacity
+                                    style={styles.nextButton}
+                                    onPress={handleNextManual}
+                                >
+                                    <LinearGradient
+                                        colors={['#6366f1', '#4f46e5']}
+                                        style={styles.nextButtonGradient}
+                                        start={{ x: 0, y: 0 }}
+                                        end={{ x: 1, y: 1 }}
+                                    >
+                                        <Text style={styles.nextButtonText}>Next Level</Text>
+                                    </LinearGradient>
+                                </TouchableOpacity>
+                            )}
                         </View>
 
                         <View style={styles.controlsContainer}>
@@ -247,7 +298,36 @@ const styles = StyleSheet.create({
     safeArea: { flex: 1 },
     gameContent: { flex: 1, justifyContent: 'space-between' },
 
-    pitchContainer: { flex: 1, justifyContent: 'center' },
+    pitchContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        position: 'relative',
+    },
+
+    nextButton: {
+        position: 'absolute',
+        bottom: 20,
+        width: '60%',
+        height: 50,
+        zIndex: 10,
+    },
+    nextButtonGradient: {
+        flex: 1,
+        borderRadius: 16,
+        alignItems: 'center',
+        justifyContent: 'center',
+        shadowColor: '#6366f1',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 6,
+    },
+    nextButtonText: {
+        color: 'white',
+        fontSize: 18,
+        fontWeight: 'bold',
+    },
 
     controlsContainer: { paddingBottom: 20, gap: 20 },
 

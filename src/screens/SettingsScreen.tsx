@@ -4,7 +4,7 @@ import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Ale
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useAudio } from '../context/AudioContext';
-import { saveSoundPreference, getDifficultyPreference, saveDifficultyPreference, getPauseDuration, savePauseDuration, resetHighScores, SoundType, DifficultyMode } from '../utils/storage';
+import { saveSoundPreference, getDifficultyPreference, saveDifficultyPreference, getPauseDuration, savePauseDuration, resetHighScores, getAdvanceModePreference, saveAdvanceModePreference, SoundType, DifficultyMode, AdvanceMode } from '../utils/storage';
 import { useState, useEffect } from 'react';
 import PauseSlider from '../components/PauseSlider';
 
@@ -29,21 +29,17 @@ const SOUND_OPTIONS: { id: SoundType; label: string; icon: string }[] = [
 export default function SettingsScreen({ onBack }: Props) {
     const { soundType, updateSoundType, playPitch } = useAudio();
     const [difficulty, setDifficulty] = useState<DifficultyMode>('hard');
+    const [advanceMode, setAdvanceMode] = useState<AdvanceMode>('fast');
     const [pauseDuration, setPauseDuration] = useState(100);
 
     useEffect(() => {
-        loadDifficulty();
-        loadPauseDuration();
+        loadSettings();
     }, []);
 
-    const loadDifficulty = async () => {
-        const pref = await getDifficultyPreference();
-        setDifficulty(pref);
-    };
-
-    const loadPauseDuration = async () => {
-        const pref = await getPauseDuration();
-        setPauseDuration(pref);
+    const loadSettings = async () => {
+        setDifficulty(await getDifficultyPreference());
+        setAdvanceMode(await getAdvanceModePreference());
+        setPauseDuration(await getPauseDuration());
     };
 
     const handleSelectSound = async (type: SoundType) => {
@@ -56,6 +52,11 @@ export default function SettingsScreen({ onBack }: Props) {
     const handleSelectDifficulty = async (mode: DifficultyMode) => {
         setDifficulty(mode);
         await saveDifficultyPreference(mode);
+    };
+
+    const handleSelectAdvanceMode = async (mode: AdvanceMode) => {
+        setAdvanceMode(mode);
+        await saveAdvanceModePreference(mode);
     };
 
     const handlePauseChange = async (val: number) => {
@@ -118,6 +119,37 @@ export default function SettingsScreen({ onBack }: Props) {
                                     </Text>
                                 </View>
                                 {difficulty === mode && (
+                                    <Ionicons name="checkmark-circle" size={20} color="#a855f7" />
+                                )}
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+
+                    <Text style={styles.sectionTitle}>Flow Mode</Text>
+                    <View style={[styles.optionsContainer, { marginBottom: 32 }]}>
+                        {(['fast', 'slow'] as AdvanceMode[]).map((mode) => (
+                            <TouchableOpacity
+                                key={mode}
+                                style={[
+                                    styles.optionCard,
+                                    advanceMode === mode && styles.selectedCard
+                                ]}
+                                onPress={() => handleSelectAdvanceMode(mode)}
+                            >
+                                <View style={styles.optionInfo}>
+                                    <Ionicons
+                                        name={mode === 'fast' ? 'flash-outline' : 'pause-outline'}
+                                        size={24}
+                                        color={advanceMode === mode ? '#a855f7' : '#94a3b8'}
+                                    />
+                                    <Text style={[
+                                        styles.optionLabel,
+                                        advanceMode === mode && styles.selectedLabel
+                                    ]}>
+                                        {mode === 'fast' ? 'Fast (Auto-Next)' : 'Slow (Manual Next)'}
+                                    </Text>
+                                </View>
+                                {advanceMode === mode && (
                                     <Ionicons name="checkmark-circle" size={20} color="#a855f7" />
                                 )}
                             </TouchableOpacity>

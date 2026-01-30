@@ -5,6 +5,7 @@ const HIGH_SCORES_KEY = '@high_scores';
 const SOUND_PREFERENCE_KEY = '@sound_preference';
 const DIFFICULTY_PREFERENCE_KEY = '@difficulty_preference';
 const PAUSE_DURATION_KEY = '@pause_duration';
+const ADVANCE_MODE_KEY = '@advance_mode';
 
 export interface HighScores {
     game1: number;
@@ -16,6 +17,7 @@ export interface HighScores {
 
 export type SoundType = 'sound1' | 'sound2' | 'sound3' | 'sound4' | 'sound5' | 'sound6' | 'sound7' | 'sound8' | 'sound9' | 'sound10' | 'sound11';
 export type DifficultyMode = 'easy' | 'hard';
+export type AdvanceMode = 'fast' | 'slow';
 
 const defaultHighScores: HighScores = {
     game1: 0,
@@ -104,5 +106,22 @@ export const resetHighScores = async (): Promise<void> => {
         await AsyncStorage.setItem(HIGH_SCORES_KEY, JSON.stringify(defaultHighScores));
     } catch (e) {
         console.error('Failed to reset high scores', e);
+    }
+};
+
+export const getAdvanceModePreference = async (): Promise<AdvanceMode> => {
+    try {
+        const value = await AsyncStorage.getItem(ADVANCE_MODE_KEY);
+        return (value as AdvanceMode) || 'fast';
+    } catch (e) {
+        return 'fast';
+    }
+};
+
+export const saveAdvanceModePreference = async (mode: AdvanceMode): Promise<void> => {
+    try {
+        await AsyncStorage.setItem(ADVANCE_MODE_KEY, mode);
+    } catch (e) {
+        console.error('Failed to save advance mode preference', e);
     }
 };

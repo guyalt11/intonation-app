@@ -1,13 +1,13 @@
 
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, SafeAreaView } from 'react-native';
+import { View, StyleSheet, SafeAreaView, Text, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import GameHeader from '../components/GameHeader';
 import PitchIndicator from '../components/PitchIndicator';
 import AnswerButtons from '../components/AnswerButtons';
 import GameOver from '../components/GameOver';
 import { useAudio } from '../context/AudioContext';
-import { saveHighScore, getDifficultyPreference, DifficultyMode, getPauseDuration } from '../utils/storage';
+import { saveHighScore, getDifficultyPreference, DifficultyMode, getPauseDuration, getAdvanceModePreference, AdvanceMode } from '../utils/storage';
 
 const MIN_FREQ = 130.81;
 const MAX_FREQ = 1046.50;
@@ -36,6 +36,7 @@ export default function Game4Screen({ onExit }: Props) {
     const [isPlaying, setIsPlaying] = useState(false);
     const [canInput, setCanInput] = useState(false);
     const [difficulty, setDifficulty] = useState<DifficultyMode>('hard');
+    const [advanceMode, setAdvanceMode] = useState<AdvanceMode>('fast');
     const [waitTime, setWaitTime] = useState<number | null>(null);
 
     useEffect(() => {
@@ -44,6 +45,8 @@ export default function Game4Screen({ onExit }: Props) {
             setDifficulty(diffPref);
             const pausePref = await getPauseDuration();
             setWaitTime(pausePref);
+            const flowPref = await getAdvanceModePreference();
+            setAdvanceMode(flowPref);
         };
         loadPrefs();
     }, []);
@@ -98,11 +101,29 @@ export default function Game4Screen({ onExit }: Props) {
         await playPitch(midFreq, dur1 / 1000);
         await new Promise(r => setTimeout(r, Math.max(0, dur1 + waitTime - 50)));
 
-        setCanInput(true);
+        if (isCorrect === null) setCanInput(true);
         await playPitch(actualFreq, dur2 / 1000);
         await new Promise(r => setTimeout(r, dur2));
 
         setIsPlaying(false);
+    };
+
+    const handleNextManual = () => {
+        if (isCorrect === null) return;
+
+        if (isCorrect) {
+            const next = level + 1;
+            setLevel(next);
+            generateNextLevel(next);
+        } else {
+            if (lives <= 0) {
+                setGameState('gameover');
+            } else {
+                const next = level + 1;
+                setLevel(next);
+                generateNextLevel(next);
+            }
+        }
     };
 
     const handleGuess = (guess: 'u' | 'd') => {
@@ -115,24 +136,40 @@ export default function Game4Screen({ onExit }: Props) {
         setLastGuess(guess);
         setCanInput(false);
 
-        setTimeout(() => {
-            if (won) {
-                const next = level + 1;
-                setLevel(next);
-                generateNextLevel(next);
-            } else {
-                const remaining = lives - 1;
-                setLives(remaining);
-                if (remaining <= 0) {
-                    setGameState('gameover');
-                    saveHighScore('game4', level);
-                } else {
+        if (advanceMode === 'fast') {
+            setTimeout(() => {
+                if (won) {
                     const next = level + 1;
                     setLevel(next);
                     generateNextLevel(next);
+                } else {
+                    const remaining = lives - 1;
+                    setLives(remaining);
+                    if (remaining <= 0) {
+                        setGameState('gameover');
+                        saveHighScore('game4', level);
+                    } else {
+                        const next = level + 1;
+                        setLevel(next);
+                        generateNextLevel(next);
+                    }
                 }
+            }, 800);
+        } else {
+            // Slow mode
+            if (!won) {
+                const remaining = lives - 1;
+                setLives(remaining);
+                if (remaining <= 0) {
+                    setTimeout(() => {
+                        setGameState('gameover');
+                        saveHighScore('game4', level);
+                    }, 800);
+                }
+            } else {
+                saveHighScore('game4', level + 1);
             }
-        }, 800);
+        }
     };
 
     const handleExit = () => {
@@ -159,12 +196,32 @@ export default function Game4Screen({ onExit }: Props) {
                 {gameState === 'playing' && (
                     <View style={styles.gameContent}>
                         <GameHeader level={level} lives={lives} onHome={handleExit} />
-                        <PitchIndicator
-                            isPlaying={isPlaying}
-                            isCorrect={isCorrect}
-                            isClickable={difficulty === 'easy' && canInput}
-                            onPress={playSequence}
-                        />
+
+                        <View style={styles.pitchContainer}>
+                            <PitchIndicator
+                                isPlaying={isPlaying}
+                                isCorrect={isCorrect}
+                                isClickable={(difficulty === 'easy' || (isCorrect !== null && advanceMode === 'slow')) && (canInput || isCorrect !== null)}
+                                onPress={playSequence}
+                            />
+
+                            {isCorrect !== null && advanceMode === 'slow' && lives > 0 && (
+                                <TouchableOpacity
+                                    style={styles.nextButton}
+                                    onPress={handleNextManual}
+                                >
+                                    <LinearGradient
+                                        colors={['#6366f1', '#4f46e5']}
+                                        style={styles.nextButtonGradient}
+                                        start={{ x: 0, y: 0 }}
+                                        end={{ x: 1, y: 1 }}
+                                    >
+                                        <Text style={styles.nextButtonText}>Next Level</Text>
+                                    </LinearGradient>
+                                </TouchableOpacity>
+                            )}
+                        </View>
+
                         <AnswerButtons
                             onGuess={handleGuess}
                             disabled={!canInput}
@@ -185,4 +242,33 @@ const styles = StyleSheet.create({
     container: { flex: 1 },
     safeArea: { flex: 1 },
     gameContent: { flex: 1, justifyContent: 'space-between' },
+    pitchContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        position: 'relative',
+    },
+    nextButton: {
+        position: 'absolute',
+        bottom: 150,
+        width: '60%',
+        height: 50,
+        zIndex: 10,
+    },
+    nextButtonGradient: {
+        flex: 1,
+        borderRadius: 16,
+        alignItems: 'center',
+        justifyContent: 'center',
+        shadowColor: '#6366f1',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 6,
+    },
+    nextButtonText: {
+        color: 'white',
+        fontSize: 18,
+        fontWeight: 'bold',
+    },
 });
