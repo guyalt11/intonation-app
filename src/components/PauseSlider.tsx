@@ -1,48 +1,83 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, PanResponder, LayoutChangeEvent } from 'react-native';
+import { View, Text, StyleSheet, PanResponder, LayoutChangeEvent, TouchableOpacity } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 interface Props {
     value: number; // in ms
     onValueChange: (value: number) => void;
+    onSlidingComplete?: (value: number) => void;
+    onPlay?: () => void;
     min?: number;
     max?: number;
 }
 
-export default function PauseSlider({ value, onValueChange, min = 0, max = 1000 }: Props) {
-    const [width, setWidth] = useState(0);
+export default function PauseSlider({ value, onValueChange, onSlidingComplete, onPlay, min = 0, max = 1000 }: Props) {
     const sliderWidth = useRef(0);
+    const [localValue, setLocalValue] = useState(value);
+    const isSliding = useRef(false);
 
-    // Normalized value (0 to 1)
-    const normalizedValue = (value - min) / (max - min);
+    // Sync local value when external value changes
+    useEffect(() => {
+        if (!isSliding.current) {
+            setLocalValue(value);
+        }
+    }, [value]);
+
+    // Normalized value (0 to 1) based on local state for smooth visual
+    const normalizedValue = (localValue - min) / (max - min);
 
     const onLayout = (event: LayoutChangeEvent) => {
         const { width: w } = event.nativeEvent.layout;
-        setWidth(w);
         sliderWidth.current = w;
     };
 
-    const handleTouch = (evt: any) => {
+    const handleTouch = (evt: any, isFinal: boolean = false) => {
         if (sliderWidth.current === 0) return;
+
         const touchX = evt.nativeEvent.locationX;
         let newValue = (touchX / sliderWidth.current) * (max - min) + min;
-        newValue = Math.max(min, Math.min(max, Math.round(newValue / 100) * 100)); // Snap to 100ms
+
+        // Snap to 100ms strictly
+        newValue = Math.max(min, Math.min(max, Math.round(newValue / 100) * 100));
+
+        setLocalValue(newValue);
         onValueChange(newValue);
+        if (isFinal) {
+            onSlidingComplete?.(newValue);
+        }
     };
 
     const panResponder = useRef(
         PanResponder.create({
             onStartShouldSetPanResponder: () => true,
             onMoveShouldSetPanResponder: () => true,
-            onPanResponderGrant: (evt) => handleTouch(evt),
+            onPanResponderGrant: (evt) => {
+                isSliding.current = true;
+                handleTouch(evt);
+            },
             onPanResponderMove: (evt) => handleTouch(evt),
+            onPanResponderRelease: (evt) => {
+                handleTouch(evt, true);
+                isSliding.current = false;
+            },
+            onPanResponderTerminate: () => {
+                isSliding.current = false;
+            }
         })
     ).current;
 
     return (
         <View style={styles.container}>
             <View style={styles.labelRow}>
-                <Text style={styles.valueText}>{value}ms</Text>
+                <View style={styles.labelContainer}>
+                    <Text style={styles.valueText}>{localValue.toFixed(0)}ms</Text>
+                    {onPlay && (
+                        <TouchableOpacity onPress={onPlay} style={styles.playButton}>
+                            <Ionicons name="play" size={20} color="white" />
+                        </TouchableOpacity>
+                    )}
+                </View>
             </View>
 
             <View
@@ -51,7 +86,7 @@ export default function PauseSlider({ value, onValueChange, min = 0, max = 1000 
                 {...panResponder.panHandlers}
             >
                 {/* Track */}
-                <View style={styles.track}>
+                <View style={styles.track} pointerEvents="none">
                     {/* Active Part */}
                     <View
                         style={[
@@ -63,6 +98,7 @@ export default function PauseSlider({ value, onValueChange, min = 0, max = 1000 
 
                 {/* Thumb */}
                 <View
+                    pointerEvents="none"
                     style={[
                         styles.thumb,
                         { left: `${normalizedValue * 100}%` }
@@ -90,12 +126,33 @@ const styles = StyleSheet.create({
     labelRow: {
         flexDirection: 'row',
         justifyContent: 'center',
+        alignItems: 'center',
         marginBottom: 15,
+    },
+    labelContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+    },
+    playButton: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: '#a855f7',
+        alignItems: 'center',
+        justifyContent: 'center',
+        shadowColor: '#a855f7',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 4,
     },
     valueText: {
         color: '#a855f7',
         fontSize: 24,
         fontWeight: 'bold',
+        minWidth: 80,
+        textAlign: 'center',
     },
     sliderContainer: {
         height: 40,
@@ -103,9 +160,9 @@ const styles = StyleSheet.create({
         position: 'relative',
     },
     track: {
-        height: 4,
+        height: 8,
         backgroundColor: 'rgba(255, 255, 255, 0.1)',
-        borderRadius: 2,
+        borderRadius: 4,
         overflow: 'hidden',
     },
     activeTrack: {
@@ -114,13 +171,13 @@ const styles = StyleSheet.create({
     },
     thumb: {
         position: 'absolute',
-        width: 24,
-        height: 24,
-        borderRadius: 12,
+        width: 28,
+        height: 28,
+        borderRadius: 14,
         backgroundColor: 'white',
-        borderWidth: 2,
+        borderWidth: 3,
         borderColor: '#a855f7',
-        marginLeft: -12, // Center the thumb
+        marginLeft: -14, // Center the thumb
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.3,

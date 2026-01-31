@@ -88,9 +88,20 @@ export default function SettingsScreen({ onBack }: Props) {
         await saveGame4Sequence(next);
     };
 
-    const handlePauseChange = async (val: number) => {
+    const handlePauseChange = (val: number) => {
         setPauseDuration(val);
+    };
+
+    const handlePauseSave = async (val: number) => {
         await savePauseDuration(val);
+    };
+
+    const playTestPause = async () => {
+        // Play A4 (440Hz) followed by E5 (659.25Hz) with the current pause
+        playPitch(440, 0.4);
+        setTimeout(() => {
+            playPitch(659.25, 0.4);
+        }, 400 + pauseDuration);
     };
 
     const handleResetHighScores = () => {
@@ -189,6 +200,8 @@ export default function SettingsScreen({ onBack }: Props) {
                     <PauseSlider
                         value={pauseDuration}
                         onValueChange={handlePauseChange}
+                        onSlidingComplete={handlePauseSave}
+                        onPlay={playTestPause}
                         min={0}
                         max={1000}
                     />
