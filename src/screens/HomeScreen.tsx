@@ -26,14 +26,14 @@ const GAMES = [
     {
         id: 4,
         title: "Cadence Mode",
-        desc: "6-7-1 sequence detection.",
+        desc: "Last note is out of tune.",
         icon: <Activity size={24} color="white" />,
         colors: ['#f59e0b', '#d97706'] as const
     },
     {
         id: 5,
-        title: "Full Scale Mode",
-        desc: "Major scale (1-8) challenge.",
+        title: "Scale Mode",
+        desc: "Find the out of tune note.",
         icon: <Play size={24} color="white" />,
         colors: ['#10b981', '#059669'] as const
     }

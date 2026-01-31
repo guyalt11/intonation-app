@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, StyleSheet, SafeAreaView, Text, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import GameHeader from '../components/GameHeader';
@@ -7,7 +7,7 @@ import PitchIndicator from '../components/PitchIndicator';
 import AnswerButtons from '../components/AnswerButtons';
 import GameOver from '../components/GameOver';
 import { useAudio } from '../context/AudioContext';
-import { saveHighScore, getDifficultyPreference, DifficultyMode, getPauseDuration, getAdvanceModePreference, AdvanceMode } from '../utils/storage';
+import { saveHighScore, getDifficultyPreference, DifficultyMode, getPauseDuration, getAdvanceModePreference, AdvanceMode, getGame4Sequence } from '../utils/storage';
 
 const MIN_FREQ = 130.81;
 const MAX_FREQ = 1046.50;
@@ -20,16 +20,28 @@ interface Props {
     onExit: () => void;
 }
 
+const GET_RATIO = (note: number) => {
+    // 1 is target (0 semitones relative to itself)
+    // 7 is -1st
+    // 6 is -3st
+    // 5 is -5st
+    switch (note) {
+        case 7: return Math.pow(2, -1 / 12);
+        case 6: return Math.pow(2, -3 / 12);
+        case 5: return Math.pow(2, -5 / 12);
+        default: return 1;
+    }
+};
+
 export default function Game4Screen({ onExit }: Props) {
-    const { playPitch, stopAll } = useAudio();
+    const { playPitch, stopAll, stopPitches } = useAudio();
     const [gameState, setGameState] = useState<'playing' | 'gameover'>('playing');
     const [level, setLevel] = useState(1);
     const [lives, setLives] = useState(3);
 
-    const [rootFreq, setRootFreq] = useState(0);
-    const [midFreq, setMidFreq] = useState(0);
     const [targetFreq, setTargetFreq] = useState(0);
     const [actualFreq, setActualFreq] = useState(0);
+    const [sequenceFreqs, setSequenceFreqs] = useState<number[]>([]);
 
     const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
     const [lastGuess, setLastGuess] = useState<'u' | 'd' | null>(null);
@@ -37,30 +49,23 @@ export default function Game4Screen({ onExit }: Props) {
     const [canInput, setCanInput] = useState(false);
     const [difficulty, setDifficulty] = useState<DifficultyMode>('hard');
     const [advanceMode, setAdvanceMode] = useState<AdvanceMode>('fast');
+    const [sequence, setSequence] = useState<number[]>([5, 6, 7]);
     const [waitTime, setWaitTime] = useState<number | null>(null);
 
-    useEffect(() => {
-        const loadPrefs = async () => {
-            const diffPref = await getDifficultyPreference();
-            setDifficulty(diffPref);
-            const pausePref = await getPauseDuration();
-            setWaitTime(pausePref);
-            const flowPref = await getAdvanceModePreference();
-            setAdvanceMode(flowPref);
-        };
-        loadPrefs();
-    }, []);
+    const sequenceId = useRef(0);
 
-    const generateNextLevel = (targetLevel: number) => {
-        const safeMin = MIN_FREQ * 1.1;
+
+
+    const generateNextLevel = (targetLevel: number, currentSeq?: number[]) => {
+        const activeSeq = currentSeq || sequence;
+        const safeMin = MIN_FREQ * 1.3; // Give more room for lower notes (5, 6, 7)
         const safeMax = MAX_FREQ / 1.5;
 
-        const root = Math.random() * (safeMax - safeMin) + safeMin;
-        const m2_ratio = Math.pow(2, 2 / 12);
-        const mid = root * m2_ratio;
+        const target = Math.random() * (safeMax - safeMin) + safeMin;
 
-        const minor_ratio = Math.pow(2, 1 / 12);
-        const target = mid * minor_ratio;
+        const safeSeq = Array.isArray(activeSeq) ? activeSeq : [5, 6, 7];
+        const freqs = safeSeq.map(note => target * GET_RATIO(note));
+        setSequenceFreqs(freqs);
 
         const deltaSemitones =
             DELTA_SEMITONES_START * Math.exp(-K_FACTOR * targetLevel) +
@@ -71,8 +76,6 @@ export default function Game4Screen({ onExit }: Props) {
         let direction = Math.random() > 0.5 ? 'u' : 'd';
         const actual = direction === 'u' ? target * errorRatio : target / errorRatio;
 
-        setRootFreq(root);
-        setMidFreq(mid);
         setTargetFreq(target);
         setActualFreq(actual);
 
@@ -81,34 +84,48 @@ export default function Game4Screen({ onExit }: Props) {
         setCanInput(false);
     };
 
-    const startGame = () => {
+    const startGame = (currentSeq?: number[]) => {
+        sequenceId.current++;
+        stopAll();
         setGameState('playing');
         setLevel(1);
         setLives(3);
-        generateNextLevel(1);
+        generateNextLevel(1, currentSeq);
     };
 
     const playSequence = async () => {
         if (isPlaying || waitTime === null) return;
-        const dur1 = 600;
-        const dur2 = 800;
+        const id = ++sequenceId.current;
+        const dur = 600;
+        const durLast = 800;
 
         setIsPlaying(true);
-        setCanInput(false);
+        // setCanInput(false);
 
-        await playPitch(rootFreq, dur1 / 1000);
-        await new Promise(r => setTimeout(r, Math.max(0, dur1 + waitTime - 50)));
-        await playPitch(midFreq, dur1 / 1000);
-        await new Promise(r => setTimeout(r, Math.max(0, dur1 + waitTime - 50)));
+        try {
+            // Play sequence notes (5, 6, 7 as selected)
+            for (const f of sequenceFreqs) {
+                if (sequenceId.current !== id) return;
+                await playPitch(f, dur / 1000);
+                await new Promise(r => setTimeout(r, Math.max(0, dur + waitTime - 50)));
+            }
 
-        if (isCorrect === null) setCanInput(true);
-        await playPitch(actualFreq, dur2 / 1000);
-        await new Promise(r => setTimeout(r, dur2));
-
-        setIsPlaying(false);
+            // Final note (actualFreq) - it's the 1st
+            if (sequenceId.current !== id) return;
+            if (isCorrect === null) setCanInput(true);
+            await playPitch(actualFreq, durLast / 1000);
+            await new Promise(r => setTimeout(r, durLast));
+        } finally {
+            if (sequenceId.current === id) {
+                setIsPlaying(false);
+            }
+        }
     };
 
     const handleNextManual = () => {
+        sequenceId.current++;
+        setIsPlaying(false);
+        stopAll();
         if (isCorrect === null) return;
 
         if (isCorrect) {
@@ -127,6 +144,9 @@ export default function Game4Screen({ onExit }: Props) {
     };
 
     const handleGuess = (guess: 'u' | 'd') => {
+        sequenceId.current++;
+        setIsPlaying(false);
+        stopAll();
         if (!canInput) return;
 
         const actualDirection = actualFreq > targetFreq ? 'u' : 'd';
@@ -139,6 +159,7 @@ export default function Game4Screen({ onExit }: Props) {
         if (advanceMode === 'fast') {
             setTimeout(() => {
                 if (won) {
+                    sequenceId.current++;
                     const next = level + 1;
                     setLevel(next);
                     generateNextLevel(next);
@@ -146,9 +167,11 @@ export default function Game4Screen({ onExit }: Props) {
                     const remaining = lives - 1;
                     setLives(remaining);
                     if (remaining <= 0) {
+                        sequenceId.current++;
                         setGameState('gameover');
                         saveHighScore('game4', level);
                     } else {
+                        sequenceId.current++;
                         const next = level + 1;
                         setLevel(next);
                         generateNextLevel(next);
@@ -162,6 +185,7 @@ export default function Game4Screen({ onExit }: Props) {
                 setLives(remaining);
                 if (remaining <= 0) {
                     setTimeout(() => {
+                        sequenceId.current++;
                         setGameState('gameover');
                         saveHighScore('game4', level);
                     }, 800);
@@ -173,20 +197,35 @@ export default function Game4Screen({ onExit }: Props) {
     };
 
     const handleExit = () => {
+        sequenceId.current++;
         stopAll();
         onExit();
     };
 
     useEffect(() => {
-        startGame();
-        return () => stopAll();
+        const init = async () => {
+            const diffPref = await getDifficultyPreference();
+            setDifficulty(diffPref);
+            const pausePref = await getPauseDuration();
+            setWaitTime(pausePref);
+            const flowPref = await getAdvanceModePreference();
+            setAdvanceMode(flowPref);
+            const seqPref = await getGame4Sequence();
+            setSequence(seqPref);
+            startGame(seqPref);
+        };
+        init();
+        return () => {
+            sequenceId.current++;
+            stopAll();
+        };
     }, []);
 
     useEffect(() => {
-        if (gameState === 'playing' && rootFreq && waitTime !== null) {
+        if (gameState === 'playing' && targetFreq && waitTime !== null) {
             playSequence();
         }
-    }, [rootFreq, gameState, waitTime]);
+    }, [targetFreq, gameState, waitTime]);
 
     const bgDark = ['#1a1a2e', '#0c0c0e'] as const;
 

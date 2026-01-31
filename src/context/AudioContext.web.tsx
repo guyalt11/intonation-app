@@ -8,6 +8,7 @@ interface AudioContextType {
     playPitch: (freq: number, duration?: number, overrideSoundType?: SoundType) => Promise<void>;
     createDrone: (freq: number) => { stop: () => void };
     stopAll: () => void;
+    stopPitches: () => void;
     soundType: SoundType;
     updateSoundType: (type: SoundType) => void;
 }
@@ -277,11 +278,15 @@ export const AudioProvider = ({ children }: { children: React.ReactNode }) => {
         });
     };
 
-    const stopAll = () => {
+    const stopPitches = () => {
         activeOscillators.current.forEach(osc => {
             try { osc.stop(); } catch (e) { }
         });
         activeOscillators.current.clear();
+    };
+
+    const stopAll = () => {
+        stopPitches();
         if (droneOscRef.current) {
             try { droneOscRef.current.stop(); } catch (e) { }
             droneOscRef.current = null;
@@ -342,7 +347,7 @@ export const AudioProvider = ({ children }: { children: React.ReactNode }) => {
     };
 
     return (
-        <AudioGameContext.Provider value={{ playPitch, createDrone, stopAll, soundType, updateSoundType }}>
+        <AudioGameContext.Provider value={{ playPitch, createDrone, stopAll, stopPitches, soundType, updateSoundType }}>
             {children}
         </AudioGameContext.Provider>
     );

@@ -6,6 +6,8 @@ const SOUND_PREFERENCE_KEY = '@sound_preference';
 const DIFFICULTY_PREFERENCE_KEY = '@difficulty_preference';
 const PAUSE_DURATION_KEY = '@pause_duration';
 const ADVANCE_MODE_KEY = '@advance_mode';
+const SCALE_TYPE_KEY = '@scale_type';
+const GAME4_SEQUENCE_KEY = '@game4_sequence';
 
 export interface HighScores {
     game1: number;
@@ -18,6 +20,7 @@ export interface HighScores {
 export type SoundType = 'sound1' | 'sound2' | 'sound3' | 'sound4' | 'sound5' | 'sound6' | 'sound7' | 'sound8' | 'sound9' | 'sound10' | 'sound11';
 export type DifficultyMode = 'easy' | 'hard';
 export type AdvanceMode = 'fast' | 'slow';
+export type ScaleType = 'major' | 'dorian' | 'phrygian' | 'lydian' | 'mixolydian' | 'aeolian' | 'locrian' | 'harmonic_minor' | 'melodic_minor';
 
 const defaultHighScores: HighScores = {
     game1: 0,
@@ -123,5 +126,39 @@ export const saveAdvanceModePreference = async (mode: AdvanceMode): Promise<void
         await AsyncStorage.setItem(ADVANCE_MODE_KEY, mode);
     } catch (e) {
         console.error('Failed to save advance mode preference', e);
+    }
+};
+
+export const getScalePreference = async (): Promise<ScaleType> => {
+    try {
+        const value = await AsyncStorage.getItem(SCALE_TYPE_KEY);
+        return (value as ScaleType) || 'major';
+    } catch (e) {
+        return 'major';
+    }
+};
+
+export const saveScalePreference = async (scale: ScaleType): Promise<void> => {
+    try {
+        await AsyncStorage.setItem(SCALE_TYPE_KEY, scale);
+    } catch (e) {
+        console.error('Failed to save scale preference', e);
+    }
+};
+
+export const getGame4Sequence = async (): Promise<number[]> => {
+    try {
+        const value = await AsyncStorage.getItem(GAME4_SEQUENCE_KEY);
+        return value != null ? JSON.parse(value) : [5, 6, 7];
+    } catch (e) {
+        return [5, 6, 7];
+    }
+};
+
+export const saveGame4Sequence = async (sequence: number[]): Promise<void> => {
+    try {
+        await AsyncStorage.setItem(GAME4_SEQUENCE_KEY, JSON.stringify(sequence));
+    } catch (e) {
+        console.error('Failed to save game 4 sequence', e);
     }
 };

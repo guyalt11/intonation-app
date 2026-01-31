@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, StyleSheet, SafeAreaView, Text, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import GameHeader from '../components/GameHeader';
@@ -21,7 +21,7 @@ interface Props {
 }
 
 export default function Game2Screen({ onExit }: Props) {
-    const { playPitch, stopAll } = useAudio();
+    const { playPitch, stopAll, stopPitches } = useAudio();
     const [gameState, setGameState] = useState<'playing' | 'gameover'>('playing');
     const [level, setLevel] = useState(1);
     const [lives, setLives] = useState(3);
@@ -33,6 +33,8 @@ export default function Game2Screen({ onExit }: Props) {
     const [canInput, setCanInput] = useState(false);
     const [difficulty, setDifficulty] = useState<DifficultyMode>('hard');
     const [advanceMode, setAdvanceMode] = useState<AdvanceMode>('fast');
+
+    const sequenceId = useRef(0);
 
     useEffect(() => {
         const loadPrefs = async () => {
@@ -69,6 +71,7 @@ export default function Game2Screen({ onExit }: Props) {
     };
 
     const startGame = () => {
+        stopAll();
         setGameState('playing');
         setLevel(1);
         setLives(3);
@@ -77,23 +80,33 @@ export default function Game2Screen({ onExit }: Props) {
 
     const playSequence = async () => {
         if (isPlaying) return;
+        const id = ++sequenceId.current;
 
         setIsPlaying(true);
-        setCanInput(false);
+        // setCanInput(false);
 
-        if (level === 1) {
-            await playPitch(firstFreq, 0.8);
-            await new Promise(r => setTimeout(r, 800 + 400));
+        try {
+            if (level === 1) {
+                if (sequenceId.current !== id) return;
+                await playPitch(firstFreq, 0.8);
+                await new Promise(r => setTimeout(r, 800 + 400));
+            }
+
+            if (sequenceId.current !== id) return;
+            await playPitch(secondFreq, 0.8);
+            await new Promise(r => setTimeout(r, 800));
+        } finally {
+            if (sequenceId.current === id) {
+                setIsPlaying(false);
+                if (isCorrect === null) setCanInput(true);
+            }
         }
-
-        await playPitch(secondFreq, 0.8);
-        await new Promise(r => setTimeout(r, 800));
-
-        setIsPlaying(false);
-        if (isCorrect === null) setCanInput(true);
     };
 
     const handleNextManual = () => {
+        sequenceId.current++;
+        setIsPlaying(false);
+        stopAll();
         if (isCorrect === null) return;
 
         if (isCorrect) {
@@ -112,6 +125,9 @@ export default function Game2Screen({ onExit }: Props) {
     };
 
     const handleGuess = (guess: 'u' | 'd') => {
+        sequenceId.current++;
+        setIsPlaying(false);
+        stopAll();
         if (!canInput) return;
 
         const actual = secondFreq > firstFreq ? 'u' : 'd';
@@ -124,6 +140,7 @@ export default function Game2Screen({ onExit }: Props) {
         if (advanceMode === 'fast') {
             setTimeout(() => {
                 if (won) {
+                    sequenceId.current++;
                     const next = level + 1;
                     setLevel(next);
                     generateNextLevel(next, secondFreq); // Pass secondFreq as start for next
@@ -131,9 +148,11 @@ export default function Game2Screen({ onExit }: Props) {
                     const remaining = lives - 1;
                     setLives(remaining);
                     if (remaining <= 0) {
+                        sequenceId.current++;
                         setGameState('gameover');
                         saveHighScore('game2', level);
                     } else {
+                        sequenceId.current++;
                         const next = level + 1;
                         setLevel(next);
                         generateNextLevel(next, secondFreq);
@@ -147,6 +166,7 @@ export default function Game2Screen({ onExit }: Props) {
                 setLives(remaining);
                 if (remaining <= 0) {
                     setTimeout(() => {
+                        sequenceId.current++;
                         setGameState('gameover');
                         saveHighScore('game2', level);
                     }, 800);
@@ -158,13 +178,17 @@ export default function Game2Screen({ onExit }: Props) {
     };
 
     const handleExit = () => {
+        sequenceId.current++;
         stopAll();
         onExit();
     };
 
     useEffect(() => {
         startGame();
-        return () => stopAll();
+        return () => {
+            sequenceId.current++;
+            stopAll();
+        };
     }, []);
 
     useEffect(() => {

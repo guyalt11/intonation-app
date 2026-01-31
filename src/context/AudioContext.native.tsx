@@ -251,11 +251,15 @@ window.playPitch = (freq, duration = 0.8, soundType = 'sound1') => {
     });
 };
 
-window.stopAll = () => {
+window.stopPitches = () => {
     window.activeOscillators.forEach(osc => {
         try { osc.stop(); } catch (e) {}
     });
     window.activeOscillators.clear();
+};
+
+window.stopAll = () => {
+    window.stopPitches();
     if (window.currentDroneOsc) {
         try { window.currentDroneOsc.stop(); } catch (e) {}
         window.currentDroneOsc = null;
@@ -312,6 +316,8 @@ const handleMessage = (data) => {
         window.stopDrone();
     } else if (data.type === 'stopAll') {
         window.stopAll();
+    } else if (data.type === 'stopPitches') {
+        window.stopPitches();
     }
 };
 
@@ -343,6 +349,7 @@ interface AudioContextType {
     playPitch: (freq: number, duration?: number, overrideSoundType?: SoundType) => void;
     createDrone: (freq: number) => { stop: () => void };
     stopAll: () => void;
+    stopPitches: () => void;
     soundType: SoundType;
     updateSoundType: (type: SoundType) => void;
 }
@@ -380,12 +387,16 @@ export const AudioProvider = ({ children }: { children: React.ReactNode }) => {
         webviewRef.current?.postMessage(JSON.stringify({ type: 'stopAll' }));
     };
 
+    const stopPitches = () => {
+        webviewRef.current?.postMessage(JSON.stringify({ type: 'stopPitches' }));
+    };
+
     const updateSoundType = (type: SoundType) => {
         setSoundType(type);
     };
 
     return (
-        <AudioGameContext.Provider value={{ playPitch, createDrone, stopAll, soundType, updateSoundType }}>
+        <AudioGameContext.Provider value={{ playPitch, createDrone, stopAll, stopPitches, soundType, updateSoundType }}>
             {children}
             <View style={{ height: 0, width: 0, position: 'absolute', opacity: 0 }}>
                 <WebView

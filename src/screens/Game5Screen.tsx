@@ -6,7 +6,7 @@ import PitchIndicator from '../components/PitchIndicator';
 import AnswerButtons from '../components/AnswerButtons';
 import GameOver from '../components/GameOver';
 import { useAudio } from '../context/AudioContext';
-import { saveHighScore, getDifficultyPreference, DifficultyMode, getPauseDuration, getAdvanceModePreference, AdvanceMode } from '../utils/storage';
+import { saveHighScore, getDifficultyPreference, DifficultyMode, getPauseDuration, getAdvanceModePreference, AdvanceMode, getScalePreference, ScaleType } from '../utils/storage';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const BUTTON_GAP = 8;
@@ -24,19 +24,22 @@ interface Props {
     onExit: () => void;
 }
 
-const SCALE_RATIOS = [
-    1,
-    Math.pow(2, 2 / 12),
-    Math.pow(2, 4 / 12),
-    Math.pow(2, 5 / 12),
-    Math.pow(2, 7 / 12),
-    Math.pow(2, 9 / 12),
-    Math.pow(2, 11 / 12),
-    Math.pow(2, 12 / 12),
-];
+const SCALE_PATTERNS: Record<ScaleType, number[]> = {
+    major: [0, 2, 4, 5, 7, 9, 11, 12],
+    dorian: [0, 2, 3, 5, 7, 9, 10, 12],
+    phrygian: [0, 1, 3, 5, 7, 8, 10, 12],
+    lydian: [0, 2, 4, 6, 7, 9, 11, 12],
+    mixolydian: [0, 2, 4, 5, 7, 9, 10, 12],
+    aeolian: [0, 2, 3, 5, 7, 8, 10, 12],
+    locrian: [0, 1, 3, 5, 6, 8, 10, 12],
+    harmonic_minor: [0, 2, 3, 5, 7, 8, 11, 12],
+    melodic_minor: [0, 2, 3, 5, 7, 9, 11, 12],
+};
+
+const getRatios = (pattern: number[]) => pattern.map(s => Math.pow(2, s / 12));
 
 export default function Game5Screen({ onExit }: Props) {
-    const { playPitch, stopAll } = useAudio();
+    const { playPitch, stopAll, stopPitches } = useAudio();
 
     const [gameState, setGameState] = useState<'playing' | 'gameover'>('playing');
     const [level, setLevel] = useState(1);
@@ -55,19 +58,13 @@ export default function Game5Screen({ onExit }: Props) {
     const [hasSubmitted, setHasSubmitted] = useState(false);
     const [difficulty, setDifficulty] = useState<DifficultyMode>('hard');
     const [advanceMode, setAdvanceMode] = useState<AdvanceMode>('fast');
+    const [scaleRatios, setScaleRatios] = useState<number[]>(getRatios(SCALE_PATTERNS.major));
     const [waitTime, setWaitTime] = useState<number | null>(null);
 
     const sequenceId = useRef(0);
 
-    useEffect(() => {
-        (async () => {
-            setDifficulty(await getDifficultyPreference());
-            setWaitTime(await getPauseDuration());
-            setAdvanceMode(await getAdvanceModePreference());
-        })();
-    }, []);
-
-    const generateNextLevel = (targetLevel: number) => {
+    const generateNextLevel = (targetLevel: number, currentRatios?: number[]) => {
+        const activeRatios = currentRatios || scaleRatios;
         const root = Math.random() * (MAX_FREQ / 2.5 - MIN_FREQ * 1.1) + MIN_FREQ * 1.1;
         const wrongIdx = Math.floor(Math.random() * 7) + 1;
         setErrorIndex(wrongIdx);
@@ -79,7 +76,7 @@ export default function Game5Screen({ onExit }: Props) {
         const ratio = Math.pow(2, delta / 12);
         const dir = Math.random() > 0.5 ? 'u' : 'd';
 
-        const freqs = SCALE_RATIOS.map((r, i) => {
+        const freqs = activeRatios.map((r, i) => {
             const base = root * r;
             if (i === wrongIdx) {
                 setTargetNote(base);
@@ -98,33 +95,60 @@ export default function Game5Screen({ onExit }: Props) {
         setHasSubmitted(false);
     };
 
-    const startGame = () => {
+    const startGame = (currentRatios?: number[]) => {
+        stopAll();
         setGameState('playing');
         setLevel(1);
         setLives(3);
-        generateNextLevel(1);
+        generateNextLevel(1, currentRatios);
     };
+
+    useEffect(() => {
+        (async () => {
+            const diff = await getDifficultyPreference();
+            const pause = await getPauseDuration();
+            const flow = await getAdvanceModePreference();
+            const scale = await getScalePreference();
+
+            setDifficulty(diff);
+            setWaitTime(pause);
+            setAdvanceMode(flow);
+            const ratios = getRatios(SCALE_PATTERNS[scale]);
+            setScaleRatios(ratios);
+            startGame(ratios);
+        })();
+
+        return () => {
+            sequenceId.current++;
+            stopAll();
+        };
+    }, []);
 
     const playSequence = async () => {
         if (isPlaying || !notes.length || waitTime === null) return;
         const id = ++sequenceId.current;
 
         setIsPlaying(true);
-        setCanInput(false);
+        // setCanInput(false);
 
-        for (const n of notes) {
-            if (sequenceId.current !== id) break;
-            await playPitch(n, 0.5);
-            await new Promise(r => setTimeout(r, 450 + waitTime));
-        }
-
-        if (sequenceId.current === id) {
-            if (!hasSubmitted) setCanInput(true);
-            setIsPlaying(false);
+        try {
+            for (const n of notes) {
+                if (sequenceId.current !== id) break;
+                await playPitch(n, 0.5);
+                await new Promise(r => setTimeout(r, 450 + waitTime));
+            }
+        } finally {
+            if (sequenceId.current === id) {
+                if (!hasSubmitted) setCanInput(true);
+                setIsPlaying(false);
+            }
         }
     };
 
     const handleNextManual = () => {
+        sequenceId.current++;
+        setIsPlaying(false);
+        stopAll();
         if (!hasSubmitted || isCorrect === null) return;
 
         if (isCorrect) {
@@ -141,6 +165,9 @@ export default function Game5Screen({ onExit }: Props) {
     };
 
     const checkAnswer = (idx: number, dir: 'u' | 'd') => {
+        sequenceId.current++;
+        setIsPlaying(false);
+        stopAll();
         const correctDir = actualNote > targetNote ? 'u' : 'd';
         const won = idx === errorIndex + 1 && dir === correctDir;
 
@@ -194,13 +221,6 @@ export default function Game5Screen({ onExit }: Props) {
         return styles.noteButton;
     };
 
-    useEffect(() => {
-        startGame();
-        return () => {
-            sequenceId.current++;
-            stopAll();
-        };
-    }, []);
 
     useEffect(() => {
         if (gameState === 'playing' && waitTime !== null) playSequence();
@@ -213,7 +233,11 @@ export default function Game5Screen({ onExit }: Props) {
             <SafeAreaView style={styles.safeArea}>
                 {gameState === 'playing' && (
                     <View style={styles.gameContent}>
-                        <GameHeader level={level} lives={lives} onHome={onExit} />
+                        <GameHeader level={level} lives={lives} onHome={() => {
+                            sequenceId.current++;
+                            stopAll();
+                            onExit();
+                        }} />
 
                         <View style={styles.pitchContainer}>
                             <PitchIndicator
@@ -251,6 +275,7 @@ export default function Game5Screen({ onExit }: Props) {
                                             style={getNoteButtonStyle(num)}
                                             disabled={!canInput || hasSubmitted || num === 1}
                                             onPress={() => {
+                                                stopAll();
                                                 setSelectedNoteIndex(num);
                                                 if (selectedDirection) checkAnswer(num, selectedDirection);
                                             }}
@@ -273,6 +298,7 @@ export default function Game5Screen({ onExit }: Props) {
                                 <Text style={styles.sectionLabelAnswer}>Tuning direction?</Text>
                                 <AnswerButtons
                                     onGuess={dir => {
+                                        stopAll();
                                         setSelectedDirection(dir);
                                         if (selectedNoteIndex) checkAnswer(selectedNoteIndex, dir);
                                     }}

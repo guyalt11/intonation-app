@@ -4,7 +4,7 @@ import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Ale
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useAudio } from '../context/AudioContext';
-import { saveSoundPreference, getDifficultyPreference, saveDifficultyPreference, getPauseDuration, savePauseDuration, resetHighScores, getAdvanceModePreference, saveAdvanceModePreference, SoundType, DifficultyMode, AdvanceMode } from '../utils/storage';
+import { saveSoundPreference, getDifficultyPreference, saveDifficultyPreference, getPauseDuration, savePauseDuration, resetHighScores, getAdvanceModePreference, saveAdvanceModePreference, getScalePreference, saveScalePreference, getGame4Sequence, saveGame4Sequence, SoundType, DifficultyMode, AdvanceMode, ScaleType } from '../utils/storage';
 import { useState, useEffect } from 'react';
 import PauseSlider from '../components/PauseSlider';
 
@@ -26,10 +26,24 @@ const SOUND_OPTIONS: { id: SoundType; label: string; icon: string }[] = [
     { id: 'sound11', label: 'Ethereal', icon: 'eye' },
 ];
 
+const SCALE_OPTIONS: { id: ScaleType; label: string }[] = [
+    { id: 'major', label: 'Major (Ionian)' },
+    { id: 'dorian', label: 'Dorian' },
+    { id: 'phrygian', label: 'Phrygian' },
+    { id: 'lydian', label: 'Lydian' },
+    { id: 'mixolydian', label: 'Mixolydian (Dominant)' },
+    { id: 'aeolian', label: 'Minor (Aeolian)' },
+    { id: 'locrian', label: 'Locrian' },
+    { id: 'harmonic_minor', label: 'Harmonic Minor' },
+    { id: 'melodic_minor', label: 'Melodic Minor' },
+];
+
 export default function SettingsScreen({ onBack }: Props) {
     const { soundType, updateSoundType, playPitch } = useAudio();
     const [difficulty, setDifficulty] = useState<DifficultyMode>('hard');
     const [advanceMode, setAdvanceMode] = useState<AdvanceMode>('fast');
+    const [scaleType, setScaleType] = useState<ScaleType>('major');
+    const [game4Sequence, setGame4Sequence] = useState<number[]>([5, 6, 7]);
     const [pauseDuration, setPauseDuration] = useState(100);
 
     useEffect(() => {
@@ -40,6 +54,8 @@ export default function SettingsScreen({ onBack }: Props) {
         setDifficulty(await getDifficultyPreference());
         setAdvanceMode(await getAdvanceModePreference());
         setPauseDuration(await getPauseDuration());
+        setScaleType(await getScalePreference());
+        setGame4Sequence(await getGame4Sequence());
     };
 
     const handleSelectSound = async (type: SoundType) => {
@@ -57,6 +73,19 @@ export default function SettingsScreen({ onBack }: Props) {
     const handleSelectAdvanceMode = async (mode: AdvanceMode) => {
         setAdvanceMode(mode);
         await saveAdvanceModePreference(mode);
+    };
+
+    const handleSelectScale = async (scale: ScaleType) => {
+        setScaleType(scale);
+        await saveScalePreference(scale);
+    };
+
+    const handleToggleGame4Note = async (note: number) => {
+        const next = game4Sequence.includes(note)
+            ? game4Sequence.filter(n => n !== note)
+            : [...game4Sequence, note].sort((a, b) => a - b);
+        setGame4Sequence(next);
+        await saveGame4Sequence(next);
     };
 
     const handlePauseChange = async (val: number) => {
@@ -115,7 +144,7 @@ export default function SettingsScreen({ onBack }: Props) {
                                         styles.optionLabel,
                                         difficulty === mode && styles.selectedLabel
                                     ]}>
-                                        {mode.charAt(0).toUpperCase() + mode.slice(1)} Mode
+                                        {mode.charAt(0).toUpperCase() + mode.slice(1)}
                                     </Text>
                                 </View>
                                 {difficulty === mode && (
@@ -125,7 +154,7 @@ export default function SettingsScreen({ onBack }: Props) {
                         ))}
                     </View>
 
-                    <Text style={styles.sectionTitle}>Flow Mode</Text>
+                    <Text style={styles.sectionTitle}>Game Mode</Text>
                     <View style={[styles.optionsContainer, { marginBottom: 32 }]}>
                         {(['fast', 'slow'] as AdvanceMode[]).map((mode) => (
                             <TouchableOpacity
@@ -191,6 +220,67 @@ export default function SettingsScreen({ onBack }: Props) {
                                     </Text>
                                 </View>
                                 {soundType === option.id && (
+                                    <Ionicons name="checkmark-circle" size={20} color="#a855f7" />
+                                )}
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+
+                    <View style={{ marginBottom: 32 }} />
+                    <Text style={styles.sectionTitle}>Cadence Mode</Text>
+                    <View style={[styles.sequenceContainer]}>
+                        {[5, 6, 7, 1].map((note) => {
+                            const isFixed = note === 1;
+                            const isActive = isFixed || game4Sequence.includes(note);
+                            return (
+                                <TouchableOpacity
+                                    key={note}
+                                    activeOpacity={isFixed ? 1 : 0.7}
+                                    style={[
+                                        styles.sequenceButton,
+                                        isActive && styles.sequenceButtonActive,
+                                        isFixed && styles.sequenceButtonFixed
+                                    ]}
+                                    onPress={() => !isFixed && handleToggleGame4Note(note)}
+                                >
+                                    <Text style={[
+                                        styles.sequenceButtonText,
+                                        isActive && styles.sequenceButtonTextActive
+                                    ]}>{note}</Text>
+                                    {isFixed && (
+                                        <Text style={styles.fixedLabel}>Fixed</Text>
+                                    )}
+                                </TouchableOpacity>
+                            );
+                        })}
+                    </View>
+
+                    <View style={{ marginBottom: 32 }} />
+                    <Text style={styles.sectionTitle}>Scale Mode</Text>
+                    <View style={[styles.optionsContainer]}>
+                        {SCALE_OPTIONS.map((option) => (
+                            <TouchableOpacity
+                                key={option.id}
+                                style={[
+                                    styles.optionCard,
+                                    scaleType === option.id && styles.selectedCard
+                                ]}
+                                onPress={() => handleSelectScale(option.id)}
+                            >
+                                <View style={styles.optionInfo}>
+                                    <Ionicons
+                                        name="musical-notes-outline"
+                                        size={24}
+                                        color={scaleType === option.id ? '#a855f7' : '#94a3b8'}
+                                    />
+                                    <Text style={[
+                                        styles.optionLabel,
+                                        scaleType === option.id && styles.selectedLabel
+                                    ]}>
+                                        {option.label}
+                                    </Text>
+                                </View>
+                                {scaleType === option.id && (
                                     <Ionicons name="checkmark-circle" size={20} color="#a855f7" />
                                 )}
                             </TouchableOpacity>
@@ -305,6 +395,65 @@ const styles = StyleSheet.create({
         color: '#ef4444',
         fontSize: 16,
         fontWeight: '600',
+    },
+    noteBadge: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    selectedNoteBadge: {
+        backgroundColor: '#a855f7',
+    },
+    noteBadgeText: {
+        color: '#94a3b8',
+        fontSize: 14,
+        fontWeight: 'bold',
+    },
+    selectedNoteBadgeText: {
+        color: 'white',
+    },
+    sequenceContainer: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        gap: 12,
+    },
+    sequenceButton: {
+        flex: 1,
+        height: 64,
+        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.1)',
+        alignItems: 'center',
+        justifyContent: 'center',
+        position: 'relative',
+    },
+    sequenceButtonActive: {
+        backgroundColor: 'rgba(168, 85, 247, 0.2)',
+        borderColor: '#a855f7',
+    },
+    sequenceButtonFixed: {
+        backgroundColor: 'rgba(168, 85, 247, 0.1)',
+        borderColor: 'rgba(168, 85, 247, 0.4)',
+    },
+    sequenceButtonText: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: '#94a3b8',
+    },
+    sequenceButtonTextActive: {
+        color: 'white',
+    },
+    fixedLabel: {
+        fontSize: 8,
+        color: '#a855f7',
+        textTransform: 'uppercase',
+        fontWeight: 'bold',
+        position: 'absolute',
+        bottom: 8,
     },
 });
 
