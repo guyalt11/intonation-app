@@ -91,8 +91,8 @@ export default function Game2Screen({ onExit }: Props) {
         try {
             if (level === 1) {
                 if (sequenceId.current !== id) return;
-                await playPitch(firstFreq, 0.15);
-                await new Promise(r => setTimeout(r, Math.max(0, 150 + pauseDuration - 70)));
+                await playPitch(firstFreq, 0.2);
+                await new Promise(r => setTimeout(r, Math.max(0, 300 + pauseDuration)));
             }
 
             if (sequenceId.current !== id) return;
