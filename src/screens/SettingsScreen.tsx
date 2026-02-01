@@ -3,7 +3,7 @@ import React from 'react';
 import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { useAudio } from '../context/AudioContext';
+import { useAudio } from '../context/AudioContext.native';
 import { saveSoundPreference, getDifficultyPreference, saveDifficultyPreference, getPauseDuration, savePauseDuration, resetHighScores, getAdvanceModePreference, saveAdvanceModePreference, getScalePreference, saveScalePreference, getGame4Sequence, saveGame4Sequence, SoundType, DifficultyMode, AdvanceMode, ScaleType } from '../utils/storage';
 import { useState, useEffect } from 'react';
 import PauseSlider from '../components/PauseSlider';
@@ -124,7 +124,7 @@ export default function SettingsScreen({ onBack }: Props) {
     };
 
     return (
-        <LinearGradient colors={['#1a1a2e', '#0c0c0e']} style={styles.container}>
+        <LinearGradient colors={['#3D1141', '#1B0721', '#050505']} style={styles.container}>
             <SafeAreaView style={styles.safeArea}>
                 <View style={styles.header}>
                     <TouchableOpacity onPress={onBack} style={styles.backButton}>

@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "mobile",
+    "name": "EarTune",
     "slug": "mobile",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -10,7 +10,7 @@
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#3D1141"
     },
     "ios": {
       "supportsTablet": true
@@ -18,12 +18,19 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#3D1141"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "package": "com.eartune.mobile"
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "11eb4967-2c73-4648-bf4e-f12352c9bcf5"
+      }
+    },
+    "owner": "guyalt11"
   }
 }

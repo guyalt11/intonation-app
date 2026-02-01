@@ -1,7 +1,7 @@
 
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { Music, RotateCcw } from 'lucide-react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Animated, Easing } from 'react-native';
+import { Music, Zap } from 'lucide-react-native';
+import { useEffect, useRef } from 'react';
 
 interface Props {
     isPlaying: boolean;
@@ -12,26 +12,73 @@ interface Props {
 
 export default function PitchIndicator({ isPlaying, isCorrect, onPress, isClickable }: Props) {
     const Container = isClickable ? TouchableOpacity : View;
+    const pulseAnim = useRef(new Animated.Value(0)).current;
+
+    useEffect(() => {
+        if (isClickable && !isPlaying) {
+            Animated.loop(
+                Animated.sequence([
+                    Animated.timing(pulseAnim, {
+                        toValue: 1,
+                        duration: 1500,
+                        easing: Easing.inOut(Easing.ease),
+                        useNativeDriver: false,
+                    }),
+                    Animated.timing(pulseAnim, {
+                        toValue: 0,
+                        duration: 1500,
+                        easing: Easing.inOut(Easing.ease),
+                        useNativeDriver: false,
+                    })
+                ])
+            ).start();
+        } else {
+            pulseAnim.setValue(0);
+        }
+    }, [isClickable, isPlaying, pulseAnim]);
+
+    const glowStyle = {
+        shadowColor: '#a855f7',
+        shadowOpacity: pulseAnim.interpolate({
+            inputRange: [0, 1],
+            outputRange: [0.5, 1]
+        }),
+        shadowRadius: pulseAnim.interpolate({
+            inputRange: [0, 1],
+            outputRange: [10, 25]
+        }),
+        elevation: pulseAnim.interpolate({
+            inputRange: [0, 1],
+            outputRange: [5, 15]
+        }),
+        borderColor: pulseAnim.interpolate({
+            inputRange: [0, 1],
+            outputRange: ['rgba(168, 85, 247, 0.5)', 'rgba(168, 85, 247, 1)']
+        }),
+        backgroundColor: pulseAnim.interpolate({
+            inputRange: [0, 1],
+            outputRange: ['rgba(168, 85, 247, 0.1)', 'rgba(168, 85, 247, 0.3)']
+        }),
+        borderRadius: 60,
+        borderWidth: 2,
+    };
 
     return (
         <View style={styles.container}>
-            <Container
-                activeOpacity={0.7}
-                onPress={onPress}
-                disabled={!isClickable || isPlaying}
-                style={[
-                    styles.indicator,
-                    isPlaying && styles.playing,
-                    isClickable && styles.clickable
-                ]}
-            >
-                {isClickable && !isPlaying && (
-                    <View style={styles.repeatIcon}>
-                        <RotateCcw size={16} color="rgba(255,255,255,0.4)" />
-                    </View>
-                )}
-                <Music size={40} color={isPlaying ? "#fff" : (isClickable ? "rgba(255,255,255,0.6)" : "rgba(255,255,255,0.3)")} />
-            </Container>
+            <Animated.View style={isClickable && !isPlaying ? glowStyle : null}>
+                <Container
+                    activeOpacity={0.7}
+                    onPress={onPress}
+                    disabled={!isClickable || isPlaying}
+                    style={[
+                        styles.indicator,
+                        isPlaying && styles.playing,
+                        isClickable && !isPlaying && { borderWidth: 0, backgroundColor: 'transparent' }
+                    ]}
+                >
+                    <Music size={40} color={isPlaying ? "#fff" : "rgba(255,255,255,0.3)"} />
+                </Container>
+            </Animated.View>
 
             <View style={styles.feedbackContainer}>
                 {isCorrect === true && <Text style={styles.correctText}>Correct!</Text>}
@@ -82,8 +129,7 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
     },
     clickable: {
-        borderColor: 'rgba(99, 102, 241, 0.4)',
-        borderStyle: 'dashed',
+        borderWidth: 2,
     },
     repeatIcon: {
         position: 'absolute',

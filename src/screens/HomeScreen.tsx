@@ -8,18 +8,21 @@ const GAMES = [
     {
         id: 1,
         title: "Basic Mode",
+        desc: "Compare 2nd note to 1st note.",
         icon: <Play size={24} color="white" />,
         colors: ['#a855f7', '#8b5cf6'] as const
     },
     {
         id: 2,
         title: "Fast Mode",
+        desc: "Always relative to the previous note.",
         icon: <Rabbit size={24} color="white" />,
         colors: ['#6366f1', '#4f46e5'] as const
     },
     {
         id: 3,
         title: "Drone Mode",
+        desc: "Compare the notes to a drone.",
         icon: <AudioWaveform size={24} color="white" />,
         colors: ['#ec4899', '#d946ef'] as const
     },
@@ -83,7 +86,7 @@ export default function HomeScreen({ onStartGame, onOpenSettings }: HomeProps) {
 
     return (
         <LinearGradient
-            colors={['#1a1a2e', '#0c0c0e']}
+            colors={['#050505', '#1B0721', '#3D1141']}
             style={styles.container}
         >
             <SafeAreaView style={styles.safeArea}>
@@ -200,7 +203,7 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         color: '#a855f7',
         fontFamily: Platform.OS === 'ios' ? 'Marker Felt' : 'sans-serif-condensed',
-        textShadowColor: 'rgba(168, 85, 247, 0.4)',
+        textShadowColor: 'rgba(177, 55, 234, 0.71)',
         textShadowOffset: { width: 2, height: 2 },
         textShadowRadius: 10,
         letterSpacing: 2,
@@ -255,10 +258,8 @@ const styles = StyleSheet.create({
     },
     footer: {
         paddingTop: 20,
-        paddingBottom: 40,
+        paddingBottom: 45,
         alignItems: 'center',
-        borderTopWidth: 1,
-        borderTopColor: 'rgba(255, 255, 255, 0.05)',
     },
     footerText: {
         color: 'rgba(255, 255, 255, 0.3)',

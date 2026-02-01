@@ -6,7 +6,7 @@ import GameHeader from '../components/GameHeader';
 import PitchIndicator from '../components/PitchIndicator';
 import AnswerButtons from '../components/AnswerButtons';
 import GameOver from '../components/GameOver';
-import { useAudio } from '../context/AudioContext';
+import { useAudio } from '../context/AudioContext.native';
 import { saveHighScore, getDifficultyPreference, DifficultyMode, getPauseDuration, getAdvanceModePreference, AdvanceMode, getGame4Sequence } from '../utils/storage';
 
 const MIN_FREQ = 130.81;
@@ -227,10 +227,8 @@ export default function Game4Screen({ onExit }: Props) {
         }
     }, [targetFreq, gameState, waitTime]);
 
-    const bgDark = ['#1a1a2e', '#0c0c0e'] as const;
-
     return (
-        <LinearGradient colors={bgDark} style={styles.container}>
+        <LinearGradient colors={['#3D1141', '#0c0c0e']} style={styles.container}>
             <SafeAreaView style={styles.safeArea}>
                 {gameState === 'playing' && (
                     <View style={styles.gameContent}>
@@ -250,7 +248,7 @@ export default function Game4Screen({ onExit }: Props) {
                                     onPress={handleNextManual}
                                 >
                                     <LinearGradient
-                                        colors={['#6366f1', '#4f46e5']}
+                                        colors={['#7234acff', '#4d3090ff']}
                                         style={styles.nextButtonGradient}
                                         start={{ x: 0, y: 0 }}
                                         end={{ x: 1, y: 1 }}
@@ -299,7 +297,7 @@ const styles = StyleSheet.create({
         borderRadius: 16,
         alignItems: 'center',
         justifyContent: 'center',
-        shadowColor: '#6366f1',
+        shadowColor: '#a855f7',
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.3,
         shadowRadius: 8,

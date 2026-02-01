@@ -6,8 +6,8 @@ import GameHeader from '../components/GameHeader';
 import PitchIndicator from '../components/PitchIndicator';
 import AnswerButtons from '../components/AnswerButtons';
 import GameOver from '../components/GameOver';
-import { useAudio } from '../context/AudioContext';
-import { saveHighScore, getDifficultyPreference, DifficultyMode, getAdvanceModePreference, AdvanceMode } from '../utils/storage';
+import { useAudio } from '../context/AudioContext.native';
+import { saveHighScore, getDifficultyPreference, DifficultyMode, getAdvanceModePreference, AdvanceMode, getPauseDuration } from '../utils/storage';
 
 const MIN_FREQ = 130.81;
 const MAX_FREQ = 1046.50;
@@ -33,6 +33,7 @@ export default function Game2Screen({ onExit }: Props) {
     const [canInput, setCanInput] = useState(false);
     const [difficulty, setDifficulty] = useState<DifficultyMode>('hard');
     const [advanceMode, setAdvanceMode] = useState<AdvanceMode>('fast');
+    const [pauseDuration, setPauseDuration] = useState(400);
 
     const sequenceId = useRef(0);
 
@@ -40,6 +41,8 @@ export default function Game2Screen({ onExit }: Props) {
         const loadPrefs = async () => {
             setDifficulty(await getDifficultyPreference());
             setAdvanceMode(await getAdvanceModePreference());
+            setPauseDuration(await getPauseDuration());
+            startGame();
         };
         loadPrefs();
     }, []);
@@ -88,13 +91,13 @@ export default function Game2Screen({ onExit }: Props) {
         try {
             if (level === 1) {
                 if (sequenceId.current !== id) return;
-                await playPitch(firstFreq, 0.8);
-                await new Promise(r => setTimeout(r, 800 + 400));
+                await playPitch(firstFreq, 0.15);
+                await new Promise(r => setTimeout(r, Math.max(0, 150 + pauseDuration - 70)));
             }
 
             if (sequenceId.current !== id) return;
-            await playPitch(secondFreq, 0.8);
-            await new Promise(r => setTimeout(r, 800));
+            await playPitch(secondFreq, 0.25);
+            await new Promise(r => setTimeout(r, 200));
         } finally {
             if (sequenceId.current === id) {
                 setIsPlaying(false);
@@ -158,7 +161,7 @@ export default function Game2Screen({ onExit }: Props) {
                         generateNextLevel(next, secondFreq);
                     }
                 }
-            }, 800);
+            }, Math.max(0, 100 + pauseDuration));
         } else {
             // Slow mode
             if (!won) {
@@ -184,7 +187,6 @@ export default function Game2Screen({ onExit }: Props) {
     };
 
     useEffect(() => {
-        startGame();
         return () => {
             sequenceId.current++;
             stopAll();
@@ -197,10 +199,8 @@ export default function Game2Screen({ onExit }: Props) {
         }
     }, [firstFreq, gameState]);
 
-    const bgDark = ['#1a1a2e', '#0c0c0e'] as const;
-
     return (
-        <LinearGradient colors={bgDark} style={styles.container}>
+        <LinearGradient colors={['#3D1141', '#0c0c0e']} style={styles.container}>
             <SafeAreaView style={styles.safeArea}>
                 {gameState === 'playing' && (
                     <View style={styles.gameContent}>
@@ -224,7 +224,7 @@ export default function Game2Screen({ onExit }: Props) {
                                     onPress={handleNextManual}
                                 >
                                     <LinearGradient
-                                        colors={['#6366f1', '#4f46e5']}
+                                        colors={['#7234acff', '#4d3090ff']}
                                         style={styles.nextButtonGradient}
                                         start={{ x: 0, y: 0 }}
                                         end={{ x: 1, y: 1 }}
@@ -278,7 +278,7 @@ const styles = StyleSheet.create({
         borderRadius: 16,
         alignItems: 'center',
         justifyContent: 'center',
-        shadowColor: '#6366f1',
+        shadowColor: '#a855f7',
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.3,
         shadowRadius: 8,
