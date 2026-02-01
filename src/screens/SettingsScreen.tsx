@@ -2,7 +2,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAudio } from '../context/AudioContext';
 import { saveSoundPreference, getDifficultyPreference, saveDifficultyPreference, getPauseDuration, savePauseDuration, resetHighScores, getAdvanceModePreference, saveAdvanceModePreference, getScalePreference, saveScalePreference, getGame4Sequence, saveGame4Sequence, SoundType, DifficultyMode, AdvanceMode, ScaleType } from '../utils/storage';
 import { useState, useEffect } from 'react';
@@ -13,17 +13,18 @@ interface Props {
 }
 
 const SOUND_OPTIONS: { id: SoundType; label: string; icon: string }[] = [
-    { id: 'sound1', label: 'Default', icon: 'musical-notes' },
-    { id: 'sound2', label: 'Piano', icon: 'musical-note' },
-    { id: 'sound3', label: 'Flute', icon: 'leaf' },
-    { id: 'sound4', label: 'Xylophone', icon: 'apps' },
+    { id: 'sound1', label: 'Default', icon: 'bulb' },
     { id: 'sound5', label: 'Organ', icon: 'grid' },
-    { id: 'sound6', label: 'E-Piano', icon: 'flash' },
-    { id: 'sound7', label: 'Chimes', icon: 'notifications' },
-    { id: 'sound8', label: 'Space Bell', icon: 'planet' },
-    { id: 'sound9', label: 'Celestial', icon: 'sparkles' },
     { id: 'sound10', label: 'Deep Organ', icon: 'reorder-four' },
+    { id: 'sound6', label: 'E-Piano', icon: 'flash' },
+    { id: 'sound4', label: 'Xylophone', icon: 'water' },
+    { id: 'sound8', label: 'Space Bell', icon: 'planet' },
+    { id: 'sound7', label: 'Chimes', icon: 'notifications' },
+    { id: 'sound9', label: 'Celestial', icon: 'sparkles' },
     { id: 'sound11', label: 'Ethereal', icon: 'eye' },
+    { id: 'sound3', label: 'Breeze', icon: 'leaf' },
+    { id: 'sound2', label: 'Crystal', icon: 'diamond' },
+
 ];
 
 const SCALE_OPTIONS: { id: ScaleType; label: string }[] = [
@@ -177,8 +178,8 @@ export default function SettingsScreen({ onBack }: Props) {
                                 onPress={() => handleSelectAdvanceMode(mode)}
                             >
                                 <View style={styles.optionInfo}>
-                                    <Ionicons
-                                        name={mode === 'fast' ? 'flash-outline' : 'pause-outline'}
+                                    <MaterialCommunityIcons
+                                        name={mode === 'fast' ? 'rabbit' : 'turtle'}
                                         size={24}
                                         color={advanceMode === mode ? '#a855f7' : '#94a3b8'}
                                     />

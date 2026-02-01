@@ -159,6 +159,6 @@ export const saveGame4Sequence = async (sequence: number[]): Promise<void> => {
     try {
         await AsyncStorage.setItem(GAME4_SEQUENCE_KEY, JSON.stringify(sequence));
     } catch (e) {
-        console.error('Failed to save game 4 sequence', e);
+        console.error('Failed to save cadence preference', e);
     }
 };

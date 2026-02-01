@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, SafeAreaView } from 'react-native';
-import { Play, Music, Shuffle, Waves, Activity, Trophy, Settings } from 'lucide-react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, SafeAreaView, Image, Platform } from 'react-native';
+import { Play, House, Rabbit, AudioWaveform, Library, Trophy, Settings } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { getHighScores, HighScores } from '../utils/storage';
 
@@ -8,33 +8,33 @@ const GAMES = [
     {
         id: 1,
         title: "Basic Mode",
-        icon: <Shuffle size={24} color="white" />,
+        icon: <Play size={24} color="white" />,
         colors: ['#a855f7', '#8b5cf6'] as const
     },
     {
         id: 2,
         title: "Fast Mode",
-        icon: <Waves size={24} color="white" />,
+        icon: <Rabbit size={24} color="white" />,
         colors: ['#6366f1', '#4f46e5'] as const
     },
     {
         id: 3,
         title: "Drone Mode",
-        icon: <Music size={24} color="white" />,
+        icon: <AudioWaveform size={24} color="white" />,
         colors: ['#ec4899', '#d946ef'] as const
     },
     {
         id: 4,
         title: "Cadence Mode",
         desc: "Last note is out of tune.",
-        icon: <Activity size={24} color="white" />,
+        icon: <House size={24} color="white" />,
         colors: ['#f59e0b', '#d97706'] as const
     },
     {
         id: 5,
         title: "Scale Mode",
         desc: "Find the out of tune note.",
-        icon: <Play size={24} color="white" />,
+        icon: <Library size={24} color="white" />,
         colors: ['#10b981', '#059669'] as const
     }
 ];
@@ -69,7 +69,15 @@ export default function HomeScreen({ onStartGame, onOpenSettings }: HomeProps) {
                     >
                         <Settings size={28} color="rgba(255,255,255,0.6)" />
                     </TouchableOpacity>
-                    <Text style={styles.title}>Intonation</Text>
+                    <View
+                        style={styles.logoWrapper}
+                    >
+                        <Image
+                            source={require('../../assets/logo.webp')}
+                            style={styles.logo}
+                            resizeMode="contain"
+                        />
+                    </View>
                 </View>
 
                 <ScrollView contentContainerStyle={styles.gamesList}>
@@ -108,6 +116,11 @@ export default function HomeScreen({ onStartGame, onOpenSettings }: HomeProps) {
                         </View>
                     ))}
                 </ScrollView>
+                <View style={styles.footer}>
+                    <Text style={styles.footerText}>
+                        © {new Date().getFullYear()} Guy Altmann. All rights reserved.
+                    </Text>
+                </View>
             </SafeAreaView>
         </LinearGradient>
     );
@@ -130,18 +143,19 @@ const styles = StyleSheet.create({
         position: 'absolute',
         top: -40,
         right: 20,
+        padding: 12,
+        zIndex: 10,
+    },
+    logoWrapper: {
+        position: 'absolute',
+        top: -40,
+        left: 20,
         padding: 10,
+        zIndex: 10,
     },
-    title: {
-        fontSize: 48,
-        fontWeight: 'bold',
-        color: '#8b5cf6',
-        textAlign: 'center',
-    },
-    subtitle: {
-        color: 'rgba(255, 255, 255, 0.6)',
-        fontSize: 18,
-        marginTop: 8,
+    logo: {
+        width: 30,
+        height: 30,
     },
     gamesList: {
         paddingHorizontal: 20,
@@ -190,5 +204,16 @@ const styles = StyleSheet.create({
         fontSize: 12,
         color: '#f59e0b',
         fontWeight: 'bold',
+    },
+    footer: {
+        paddingTop: 20,
+        paddingBottom: 40,
+        alignItems: 'center',
+        borderTopWidth: 1,
+        borderTopColor: 'rgba(255, 255, 255, 0.05)',
+    },
+    footerText: {
+        color: 'rgba(255, 255, 255, 0.3)',
+        fontSize: 12,
     },
 });
