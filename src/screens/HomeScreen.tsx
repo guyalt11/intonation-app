@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, SafeAreaView, Image, Platform } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, SafeAreaView, Image, Platform, PanResponder, Animated } from 'react-native';
 import { Play, House, Rabbit, AudioWaveform, Library, Trophy, Settings } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { getHighScores, HighScores } from '../utils/storage';
@@ -46,6 +46,31 @@ interface HomeProps {
 
 export default function HomeScreen({ onStartGame, onOpenSettings }: HomeProps) {
     const [highScores, setHighScores] = useState<HighScores | null>(null);
+    const rotation = useRef(new Animated.Value(0)).current;
+
+    // We use a ref to track the last committed rotation value to avoid jumps
+    const lastRotation = useRef(0);
+
+    const panResponder = useRef(
+        PanResponder.create({
+            onStartShouldSetPanResponder: () => true,
+            onPanResponderMove: (_, gestureState) => {
+                // Map horizontal movement (dx) to rotation degrees
+                // Dragging 100px = roughly 10 degrees change
+                let nextRotation = lastRotation.current + (gestureState.dx / 10);
+
+                // Clamp between -15 and 15
+                nextRotation = Math.max(-15, Math.min(15, nextRotation));
+
+                rotation.setValue(nextRotation);
+            },
+            onPanResponderRelease: (_, gestureState) => {
+                // Save the current rotation as the new baseline
+                let finalRotation = lastRotation.current + (gestureState.dx / 10);
+                lastRotation.current = Math.max(-15, Math.min(15, finalRotation));
+            },
+        })
+    ).current;
 
     useEffect(() => {
         const loadScores = async () => {
@@ -78,7 +103,19 @@ export default function HomeScreen({ onStartGame, onOpenSettings }: HomeProps) {
                             resizeMode="contain"
                         />
                     </View>
-                    <Text style={styles.appTitle}>EarTune</Text>
+                    <Animated.View
+                        {...panResponder.panHandlers}
+                        style={{
+                            transform: [{
+                                rotate: rotation.interpolate({
+                                    inputRange: [-15, 15],
+                                    outputRange: ['-15deg', '15deg']
+                                })
+                            }]
+                        }}
+                    >
+                        <Text style={styles.appTitle}>EarTune</Text>
+                    </Animated.View>
                 </View>
 
                 <ScrollView contentContainerStyle={styles.gamesList}>
@@ -167,7 +204,6 @@ const styles = StyleSheet.create({
         textShadowOffset: { width: 2, height: 2 },
         textShadowRadius: 10,
         letterSpacing: 2,
-        transform: [{ rotate: '-4deg' }],
     },
     gamesList: {
         paddingHorizontal: 20,
