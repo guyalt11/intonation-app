@@ -156,7 +156,7 @@ export default function SettingsScreen({ onBack }: Props) {
                                         styles.optionLabel,
                                         difficulty === mode && styles.selectedLabel
                                     ]}>
-                                        {mode.charAt(0).toUpperCase() + mode.slice(1)}
+                                        {mode === 'easy' ? 'Easy (Allow Repeats)' : 'Hard (No Repeats)'}
                                     </Text>
                                 </View>
                                 {difficulty === mode && (
@@ -168,7 +168,7 @@ export default function SettingsScreen({ onBack }: Props) {
 
                     <Text style={styles.sectionTitle}>Game Mode</Text>
                     <View style={[styles.optionsContainer, { marginBottom: 32 }]}>
-                        {(['fast', 'slow'] as AdvanceMode[]).map((mode) => (
+                        {(['slow', 'fast'] as AdvanceMode[]).map((mode) => (
                             <TouchableOpacity
                                 key={mode}
                                 style={[

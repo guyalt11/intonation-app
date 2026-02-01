@@ -73,9 +73,9 @@ export const saveSoundPreference = async (sound: SoundType): Promise<void> => {
 export const getDifficultyPreference = async (): Promise<DifficultyMode> => {
     try {
         const value = await AsyncStorage.getItem(DIFFICULTY_PREFERENCE_KEY);
-        return (value as DifficultyMode) || 'hard';
+        return (value as DifficultyMode) || 'easy';
     } catch (e) {
-        return 'hard';
+        return 'easy';
     }
 };
 
@@ -115,9 +115,9 @@ export const resetHighScores = async (): Promise<void> => {
 export const getAdvanceModePreference = async (): Promise<AdvanceMode> => {
     try {
         const value = await AsyncStorage.getItem(ADVANCE_MODE_KEY);
-        return (value as AdvanceMode) || 'fast';
+        return (value as AdvanceMode) || 'slow';
     } catch (e) {
-        return 'fast';
+        return 'slow';
     }
 };
 
