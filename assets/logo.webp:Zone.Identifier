@@ -1,4 +1,4 @@
 [ZoneTransfer]
 ZoneId=3
 ReferrerUrl=https://cloudconvert.com/
-HostUrl=https://eu-central.storage.cloudconvert.com/tasks/20613167-6c34-488f-ad16-bb21dd8f186e/Cover%20%284%29.webp?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=cloudconvert-production%2F20260131%2Ffra%2Fs3%2Faws4_request&X-Amz-Date=20260131T193205Z&X-Amz-Expires=86400&X-Amz-Signature=7cd9053ac5773d37bc3344403e9474945bfee1b4f983114431bb3e26514c3881&X-Amz-SignedHeaders=host&response-content-disposition=attachment%3B%20filename%3D%22Cover%20%284%29.webp%22&response-content-type=image%2Fwebp&x-id=GetObject
+HostUrl=https://eu-central.storage.cloudconvert.com/tasks/6e708347-5b92-4ed1-947b-c2222229c86f/Cover%20%285%29.webp?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=cloudconvert-production%2F20260201%2Ffra%2Fs3%2Faws4_request&X-Amz-Date=20260201T103401Z&X-Amz-Expires=86400&X-Amz-Signature=879f67f4238d4263f2909b05341a773d9c7e88a971a8f03e328e9ba8f5072f89&X-Amz-SignedHeaders=host&response-content-disposition=attachment%3B%20filename%3D%22Cover%20%285%29.webp%22&response-content-type=image%2Fwebp&x-id=GetObject

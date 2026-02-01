@@ -78,6 +78,7 @@ export default function HomeScreen({ onStartGame, onOpenSettings }: HomeProps) {
                             resizeMode="contain"
                         />
                     </View>
+                    <Text style={styles.appTitle}>EarTune</Text>
                 </View>
 
                 <ScrollView contentContainerStyle={styles.gamesList}>
@@ -156,6 +157,17 @@ const styles = StyleSheet.create({
     logo: {
         width: 30,
         height: 30,
+    },
+    appTitle: {
+        fontSize: 36,
+        fontWeight: 'bold',
+        color: '#a855f7',
+        fontFamily: Platform.OS === 'ios' ? 'Marker Felt' : 'sans-serif-condensed',
+        textShadowColor: 'rgba(168, 85, 247, 0.4)',
+        textShadowOffset: { width: 2, height: 2 },
+        textShadowRadius: 10,
+        letterSpacing: 2,
+        transform: [{ rotate: '-4deg' }],
     },
     gamesList: {
         paddingHorizontal: 20,
