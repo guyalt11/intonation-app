@@ -15,8 +15,9 @@ window.applySoundSettings = (osc, gain, freq, duration, soundType, isDrone = fal
     const attack = 0.02; // Faster snappier attack
 
     const baseGain = isDrone ? 0.08 : 0.15;
-    const boost = Math.max(0, 1 - (freq - 130) / (1046 - 130));
-    const normalizedGain = baseGain + (boost * (isDrone ? 0.2 : 0.55));
+    // Stronger boost for lower frequencies: logarithmic increase as freq drops
+    const boost = Math.pow(Math.max(0, 1 - (freq - 130) / (1046 - 130)), 1.5);
+    const normalizedGain = baseGain + (boost * (isDrone ? 0.3 : 0.75));
 
     switch (soundType) {
         case 'sound2': // Piano-ish
@@ -215,7 +216,7 @@ window.applySoundSettings = (osc, gain, freq, duration, soundType, isDrone = fal
             break;
 
         default: // sound1 (Default)
-            osc.type = freq < 300 ? 'triangle' : 'sine';
+            osc.type = 'sine';
             gain.gain.setValueAtTime(0, currentTime);
             gain.gain.linearRampToValueAtTime(normalizedGain, currentTime + attack);
             gain.gain.exponentialRampToValueAtTime(0.001, currentTime + duration);

@@ -48,8 +48,8 @@ export const AudioProvider = ({ children }: { children: React.ReactNode }) => {
 
         // Default base gain calculation
         const baseGain = isDrone ? 0.08 : 0.15;
-        const boost = Math.max(0, 1 - (freq - 130) / (1046 - 130));
-        const normalizedGain = baseGain + (boost * (isDrone ? 0.2 : 0.55));
+        const boost = Math.pow(Math.max(0, 1 - (freq - 130) / (1046 - 130)), 1.5);
+        const normalizedGain = baseGain + (boost * (isDrone ? 0.3 : 0.75));
 
         switch (soundTypeToUse) {
             case 'sound2': // Piano-ish
@@ -248,7 +248,7 @@ export const AudioProvider = ({ children }: { children: React.ReactNode }) => {
                 break;
 
             default: // sound1 (Default)
-                osc.type = freq < 300 ? 'triangle' : 'sine';
+                osc.type = 'sine';
                 gain.gain.setValueAtTime(0, currentTime);
                 gain.gain.linearRampToValueAtTime(normalizedGain, currentTime + attack);
                 gain.gain.exponentialRampToValueAtTime(0.001, currentTime + duration);
