@@ -52,14 +52,15 @@ const styles = StyleSheet.create({
         marginBottom: 40,
     },
     title: {
-        fontSize: 48,
-        fontWeight: 'bold',
+        fontSize: 52,
+        fontFamily: 'LuckiestGuy',
         color: '#ef4444',
         marginBottom: 16,
     },
     score: {
-        fontSize: 24,
-        color: 'rgba(255, 255, 255, 0.8)',
+        fontSize: 26,
+        fontFamily: 'Fredoka-Regular',
+        color: 'rgba(255, 255, 255, 0.9)',
     },
     buttons: {
         width: '100%',
@@ -78,7 +79,7 @@ const styles = StyleSheet.create({
     primaryButtonText: {
         color: 'white',
         fontSize: 18,
-        fontWeight: '600',
+        fontFamily: 'Outfit-Bold',
     },
     secondaryButton: {
         paddingVertical: 18,
@@ -91,6 +92,6 @@ const styles = StyleSheet.create({
     secondaryButtonText: {
         color: 'white',
         fontSize: 18,
-        fontWeight: '600',
+        fontFamily: 'Outfit-Bold',
     }
 });

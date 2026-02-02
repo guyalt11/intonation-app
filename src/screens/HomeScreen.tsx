@@ -97,18 +97,13 @@ export default function HomeScreen({ onStartGame, onOpenSettings }: HomeProps) {
                     >
                         <Settings size={28} color="rgba(255,255,255,0.6)" />
                     </TouchableOpacity>
-                    <View
-                        style={styles.logoWrapper}
-                    >
-                        <Image
-                            source={require('../../assets/logo.webp')}
-                            style={styles.logo}
-                            resizeMode="contain"
-                        />
-                    </View>
+
                     <Animated.View
                         {...panResponder.panHandlers}
                         style={{
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            gap: 14,
                             transform: [{
                                 rotate: rotation.interpolate({
                                     inputRange: [-15, 15],
@@ -117,6 +112,11 @@ export default function HomeScreen({ onStartGame, onOpenSettings }: HomeProps) {
                             }]
                         }}
                     >
+                        <Image
+                            source={require('../../assets/logo.png')}
+                            style={styles.logo}
+                            resizeMode="contain"
+                        />
                         <Text style={styles.appTitle}>EarTune</Text>
                     </Animated.View>
                 </View>
@@ -140,16 +140,18 @@ export default function HomeScreen({ onStartGame, onOpenSettings }: HomeProps) {
                                         {game.icon}
                                     </LinearGradient>
                                     <View style={styles.cardContent}>
-                                        <Text style={styles.cardTitle}>{game.title}</Text>
+                                        <View style={styles.titleRow}>
+                                            <Text style={styles.cardTitle}>{game.title}</Text>
+                                            {highScores && highScores[`game${game.id}` as keyof HighScores] > 0 && (
+                                                <View style={styles.bestScore}>
+                                                    <Trophy size={12} color="#f59e0b" />
+                                                    <Text style={styles.bestScoreText}>Best : Lvl {highScores[`game${game.id}` as keyof HighScores]}</Text>
+                                                </View>
+                                            )}
+                                        </View>
                                         {game.desc && <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                                             <Text style={styles.cardDesc}>{game.desc}</Text>
                                         </View>}
-                                        {highScores && highScores[`game${game.id}` as keyof HighScores] > 0 && (
-                                            <View style={styles.bestScore}>
-                                                <Trophy size={14} color="#f59e0b" />
-                                                <Text style={styles.bestScoreText}>Best: Lvl {highScores[`game${game.id}` as keyof HighScores]}</Text>
-                                            </View>
-                                        )}
                                     </View>
                                     <Play size={20} color="rgba(255,255,255,0.3)" />
                                 </View>
@@ -187,22 +189,14 @@ const styles = StyleSheet.create({
         padding: 12,
         zIndex: 10,
     },
-    logoWrapper: {
-        position: 'absolute',
-        top: -40,
-        left: 20,
-        padding: 10,
-        zIndex: 10,
-    },
     logo: {
-        width: 30,
-        height: 30,
+        width: 40,
+        height: 40,
     },
     appTitle: {
-        fontSize: 36,
-        fontWeight: 'bold',
+        fontSize: 42,
         color: '#a855f7',
-        fontFamily: Platform.OS === 'ios' ? 'Marker Felt' : 'sans-serif-condensed',
+        fontFamily: 'LuckiestGuy',
         textShadowColor: 'rgba(177, 55, 234, 0.71)',
         textShadowOffset: { width: 2, height: 2 },
         textShadowRadius: 10,
@@ -217,7 +211,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: 'rgba(255, 255, 255, 0.05)',
-        borderRadius: 20,
+        borderRadius: 24,
         padding: 20,
         borderWidth: 1,
         borderColor: 'rgba(255, 255, 255, 0.1)',
@@ -225,7 +219,7 @@ const styles = StyleSheet.create({
     iconContainer: {
         width: 48,
         height: 48,
-        borderRadius: 12,
+        borderRadius: 14,
         alignItems: 'center',
         justifyContent: 'center',
         marginRight: 16,
@@ -234,27 +228,37 @@ const styles = StyleSheet.create({
         flex: 1,
         marginRight: 16,
     },
+    titleRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: 6,
+    },
     cardTitle: {
-        fontSize: 18,
-        fontWeight: '600',
+        fontSize: 16,
+        fontFamily: 'Outfit-Bold',
         color: 'white',
-        marginBottom: 4,
+        flex: 1,
     },
     cardDesc: {
         fontSize: 14,
-        color: 'rgba(255, 255, 255, 0.5)',
+        fontFamily: 'Fredoka-Regular',
+        color: 'rgba(255, 255, 255, 0.6)',
         lineHeight: 20,
     },
     bestScore: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 4,
-        marginTop: 4,
+        backgroundColor: 'rgba(245, 158, 11, 0.15)',
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+        borderRadius: 8,
     },
     bestScoreText: {
-        fontSize: 12,
+        fontSize: 11,
         color: '#f59e0b',
-        fontWeight: 'bold',
+        fontFamily: 'Fredoka-Bold',
     },
     footer: {
         paddingTop: 20,
@@ -264,5 +268,6 @@ const styles = StyleSheet.create({
     footerText: {
         color: 'rgba(255, 255, 255, 0.3)',
         fontSize: 12,
+        fontFamily: 'Fredoka-Regular',
     },
 });

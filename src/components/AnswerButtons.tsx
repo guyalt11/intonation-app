@@ -77,7 +77,7 @@ const styles = StyleSheet.create({
     },
     text: {
         color: 'white',
-        fontSize: 18,
-        fontWeight: '600',
+        fontSize: 20,
+        fontFamily: 'Fredoka-Bold',
     }
 });

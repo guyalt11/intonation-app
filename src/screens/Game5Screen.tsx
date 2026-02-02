@@ -352,7 +352,7 @@ const styles = StyleSheet.create({
     nextButtonText: {
         color: 'white',
         fontSize: 18,
-        fontWeight: 'bold',
+        fontFamily: 'Fredoka-Bold',
     },
 
     controlsContainer: { paddingBottom: 20, gap: 20 },
@@ -363,14 +363,14 @@ const styles = StyleSheet.create({
     sectionLabel: {
         color: 'rgba(255,255,255,0.4)',
         fontSize: 12,
-        fontWeight: 'bold',
+        fontFamily: 'Fredoka-Bold',
         textTransform: 'uppercase',
         letterSpacing: 1,
     },
     sectionLabelAnswer: {
         color: 'rgba(255,255,255,0.4)',
         fontSize: 12,
-        fontWeight: 'bold',
+        fontFamily: 'Fredoka-Bold',
         textTransform: 'uppercase',
         letterSpacing: 1,
         marginLeft: 24,
@@ -437,7 +437,7 @@ const styles = StyleSheet.create({
     noteButtonText: {
         color: 'white',
         fontSize: 18,
-        fontWeight: 'bold',
+        fontFamily: 'Fredoka-Bold',
         textAlign: 'center',
         textAlignVertical: 'center',
         includeFontPadding: false,
@@ -445,7 +445,7 @@ const styles = StyleSheet.create({
     noteButtonTextDisabled: {
         color: 'rgba(152,152,152,0.88)',
         fontSize: 18,
-        fontWeight: 'bold',
+        fontFamily: 'Fredoka-Bold',
         textAlign: 'center',
         textAlignVertical: 'center',
         includeFontPadding: false,

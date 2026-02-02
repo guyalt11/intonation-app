@@ -300,6 +300,6 @@ const styles = StyleSheet.create({
     nextButtonText: {
         color: 'white',
         fontSize: 18,
-        fontWeight: 'bold',
+        fontFamily: 'Fredoka-Bold',
     },
 });

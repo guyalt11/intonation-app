@@ -9,10 +9,17 @@
     "web": "expo start --web"
   },
   "dependencies": {
+    "@expo-google-fonts/bangers": "^0.4.1",
+    "@expo-google-fonts/fredoka": "^0.4.1",
+    "@expo-google-fonts/inter": "^0.4.2",
+    "@expo-google-fonts/luckiest-guy": "^0.4.1",
+    "@expo-google-fonts/outfit": "^0.4.3",
     "@react-native-async-storage/async-storage": "2.2.0",
     "expo": "54.0.32",
     "expo-constants": "~18.0.13",
+    "expo-font": "^14.0.11",
     "expo-linear-gradient": "~15.0.8",
+    "expo-splash-screen": "^31.0.13",
     "expo-status-bar": "~3.0.9",
     "lucide-react-native": "^0.563.0",
     "react": "19.1.0",

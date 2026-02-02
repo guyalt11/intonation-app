@@ -64,8 +64,8 @@ const styles = StyleSheet.create({
         gap: 8,
     },
     statText: {
-        color: 'rgba(255,255,255,0.8)',
-        fontSize: 16,
-        fontWeight: '600',
+        color: 'rgba(255,255,255,0.9)',
+        fontSize: 18,
+        fontFamily: 'Fredoka-Bold',
     }
 });

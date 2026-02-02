@@ -335,8 +335,8 @@ const styles = StyleSheet.create({
         padding: 8,
     },
     title: {
-        fontSize: 20,
-        fontWeight: 'bold',
+        fontSize: 24,
+        fontFamily: 'Outfit-Bold',
         color: 'white',
     },
     content: {
@@ -349,7 +349,7 @@ const styles = StyleSheet.create({
         marginBottom: 16,
         textTransform: 'uppercase',
         letterSpacing: 1,
-        fontWeight: 'bold',
+        fontFamily: 'Fredoka-Bold',
     },
     sectionTitleDanger: {
         fontSize: 14,
@@ -357,7 +357,7 @@ const styles = StyleSheet.create({
         marginBottom: 16,
         textTransform: 'uppercase',
         letterSpacing: 1,
-        fontWeight: 'bold',
+        fontFamily: 'Fredoka-Bold',
     },
     optionsContainer: {
         gap: 12,
@@ -383,11 +383,12 @@ const styles = StyleSheet.create({
     },
     optionLabel: {
         fontSize: 16,
+        fontFamily: 'Fredoka-Regular',
         color: '#e2e8f0',
     },
     selectedLabel: {
         color: 'white',
-        fontWeight: '600',
+        fontFamily: 'Fredoka-Bold',
     },
     dangerZone: {
         marginTop: 48,
@@ -408,7 +409,7 @@ const styles = StyleSheet.create({
     resetButtonText: {
         color: '#ef4444',
         fontSize: 16,
-        fontWeight: '600',
+        fontFamily: 'Fredoka-Bold',
     },
     noteBadge: {
         width: 32,
@@ -455,7 +456,7 @@ const styles = StyleSheet.create({
     },
     sequenceButtonText: {
         fontSize: 20,
-        fontWeight: 'bold',
+        fontFamily: 'Fredoka-Bold',
         color: '#94a3b8',
     },
     sequenceButtonTextActive: {
@@ -465,7 +466,7 @@ const styles = StyleSheet.create({
         fontSize: 8,
         color: '#a855f7',
         textTransform: 'uppercase',
-        fontWeight: 'bold',
+        fontFamily: 'Fredoka-Bold',
         position: 'absolute',
         bottom: 8,
     },
