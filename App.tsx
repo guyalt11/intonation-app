@@ -1,6 +1,6 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { StyleSheet, View, StatusBar, Platform } from 'react-native';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { StyleSheet, View, StatusBar, Platform, BackHandler, AppState } from 'react-native';
 import Constants from 'expo-constants';
 import * as SplashScreen from 'expo-splash-screen';
 import { useFonts } from 'expo-font';
@@ -20,7 +20,7 @@ import {
     Inter_700Bold
 } from '@expo-google-fonts/inter';
 
-import { AudioProvider } from './src/context/AudioContext';
+import { AudioProvider, useAudio } from './src/context/AudioContext';
 import HomeScreen from './src/screens/HomeScreen';
 import Game1Screen from './src/screens/Game1Screen';
 import Game2Screen from './src/screens/Game2Screen';
@@ -32,9 +32,64 @@ import SettingsScreen from './src/screens/SettingsScreen';
 // Keep the splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync();
 
-export default function App() {
+function AppContent() {
     const [currentScreen, setCurrentScreen] = useState<'home' | 'game1' | 'game2' | 'game3' | 'game4' | 'game5' | 'settings'>('home');
 
+    // Handle Android back button
+    useEffect(() => {
+        const backAction = () => {
+            if (currentScreen !== 'home') {
+                setCurrentScreen('home');
+                return true; // Prevent default behavior (exit app)
+            }
+            return false; // Allow default behavior (exit app) when on home screen
+        };
+
+        const backHandler = BackHandler.addEventListener(
+            'hardwareBackPress',
+            backAction
+        );
+
+        return () => backHandler.remove();
+    }, [currentScreen]);
+
+    const renderScreen = () => {
+        switch (currentScreen) {
+            case 'home':
+                return (
+                    <HomeScreen
+                        onStartGame={(id) => setCurrentScreen(`game${id}` as any)}
+                        onOpenSettings={() => setCurrentScreen('settings')}
+                    />
+                );
+            case 'game1':
+                return <Game1Screen onExit={() => setCurrentScreen('home')} />;
+            case 'game2':
+                return <Game2Screen onExit={() => setCurrentScreen('home')} />;
+            case 'game3':
+                return <Game3Screen onExit={() => setCurrentScreen('home')} />;
+            case 'game4':
+                return <Game4Screen onExit={() => setCurrentScreen('home')} />;
+            case 'game5':
+                return <Game5Screen onExit={() => setCurrentScreen('home')} />;
+            case 'settings':
+                return <SettingsScreen onBack={() => setCurrentScreen('home')} />;
+            default:
+                return <HomeScreen
+                    onStartGame={(id) => setCurrentScreen(`game${id}` as any)}
+                    onOpenSettings={() => setCurrentScreen('settings')}
+                />;
+        }
+    };
+
+    return (
+        <>
+            {renderScreen()}
+        </>
+    );
+}
+
+export default function App() {
     const [fontsLoaded, fontError] = useFonts({
         'Outfit-Regular': Outfit_400Regular,
         'Outfit-Bold': Outfit_700Bold,
@@ -69,40 +124,11 @@ export default function App() {
         return null;
     }
 
-    const renderScreen = () => {
-        switch (currentScreen) {
-            case 'home':
-                return (
-                    <HomeScreen
-                        onStartGame={(id) => setCurrentScreen(`game${id}` as any)}
-                        onOpenSettings={() => setCurrentScreen('settings')}
-                    />
-                );
-            case 'game1':
-                return <Game1Screen onExit={() => setCurrentScreen('home')} />;
-            case 'game2':
-                return <Game2Screen onExit={() => setCurrentScreen('home')} />;
-            case 'game3':
-                return <Game3Screen onExit={() => setCurrentScreen('home')} />;
-            case 'game4':
-                return <Game4Screen onExit={() => setCurrentScreen('home')} />;
-            case 'game5':
-                return <Game5Screen onExit={() => setCurrentScreen('home')} />;
-            case 'settings':
-                return <SettingsScreen onBack={() => setCurrentScreen('home')} />;
-            default:
-                return <HomeScreen
-                    onStartGame={(id) => setCurrentScreen(`game${id}` as any)}
-                    onOpenSettings={() => setCurrentScreen('settings')}
-                />;
-        }
-    };
-
     return (
         <AudioProvider>
             <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
             <View style={styles.container} onLayout={onLayoutRootView}>
-                {renderScreen()}
+                <AppContent />
             </View>
         </AudioProvider>
     );
