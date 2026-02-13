@@ -1,6 +1,6 @@
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { StyleSheet, View, StatusBar, Platform, BackHandler, AppState } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { StyleSheet, View, StatusBar, Platform, BackHandler } from 'react-native';
 import Constants from 'expo-constants';
 import * as SplashScreen from 'expo-splash-screen';
 import { useFonts } from 'expo-font';
@@ -20,7 +20,7 @@ import {
     Inter_700Bold
 } from '@expo-google-fonts/inter';
 
-import { AudioProvider, useAudio } from './src/context/AudioContext';
+import { AudioProvider } from './src/context/AudioContext';
 import HomeScreen from './src/screens/HomeScreen';
 import Game1Screen from './src/screens/Game1Screen';
 import Game2Screen from './src/screens/Game2Screen';

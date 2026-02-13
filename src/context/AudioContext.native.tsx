@@ -1,12 +1,14 @@
 
 import React, { createContext, useContext, useRef, useEffect, useState } from 'react';
-import { View } from 'react-native';
+import { View, AppState } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { getSoundPreference, SoundType } from '../utils/storage';
 
 // The audio logic to be injected into the WebView
 const audioScript = `
 window.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+window.masterGain = window.audioContext.createGain();
+window.masterGain.connect(window.audioContext.destination);
 window.activeOscillators = new Set();
 
 window.applySoundSettings = (osc, gain, freq, duration, soundType, isDrone = false) => {
@@ -30,7 +32,7 @@ window.applySoundSettings = (osc, gain, freq, duration, soundType, isDrone = fal
             p2Overgain.gain.linearRampToValueAtTime(normalizedGain * 0.3, currentTime + attack);
             p2Overgain.gain.exponentialRampToValueAtTime(0.001, currentTime + duration);
             p2Overnote.connect(p2Overgain);
-            p2Overgain.connect(ctx.destination);
+            p2Overgain.connect(window.masterGain);
             p2Overnote.start();
             p2Overnote.stop(currentTime + duration);
             window.activeOscillators.add(p2Overnote);
@@ -54,7 +56,7 @@ window.applySoundSettings = (osc, gain, freq, duration, soundType, isDrone = fal
             s3NoiseGain.gain.linearRampToValueAtTime(normalizedGain * 0.1, currentTime + 0.05);
             s3NoiseGain.gain.exponentialRampToValueAtTime(0.001, currentTime + duration);
             s3Noise.connect(s3NoiseGain);
-            s3NoiseGain.connect(ctx.destination);
+            s3NoiseGain.connect(window.masterGain);
             s3Noise.start();
             s3Noise.stop(currentTime + duration);
             window.activeOscillators.add(s3Noise);
@@ -73,7 +75,7 @@ window.applySoundSettings = (osc, gain, freq, duration, soundType, isDrone = fal
             s4OverGain.gain.linearRampToValueAtTime(normalizedGain * 0.5, currentTime + 0.005);
             s4OverGain.gain.exponentialRampToValueAtTime(0.001, currentTime + duration * 0.2);
             s4Over.connect(s4OverGain);
-            s4OverGain.connect(ctx.destination);
+            s4OverGain.connect(window.masterGain);
             s4Over.start();
             s4Over.stop(currentTime + duration * 0.2);
             window.activeOscillators.add(s4Over);
@@ -94,7 +96,7 @@ window.applySoundSettings = (osc, gain, freq, duration, soundType, isDrone = fal
                 s5Ovg.gain.linearRampToValueAtTime(normalizedGain * 0.2, currentTime + attack);
                 s5Ovg.gain.exponentialRampToValueAtTime(0.001, currentTime + duration);
                 s5Ovc.connect(s5Ovg);
-                s5Ovg.connect(ctx.destination);
+                s5Ovg.connect(window.masterGain);
                 s5Ovc.start();
                 s5Ovc.stop(currentTime + duration);
                 window.activeOscillators.add(s5Ovc);
@@ -133,7 +135,7 @@ window.applySoundSettings = (osc, gain, freq, duration, soundType, isDrone = fal
                 s7G.gain.linearRampToValueAtTime(normalizedGain * 0.2, currentTime + 0.01);
                 s7G.gain.exponentialRampToValueAtTime(0.001, currentTime + duration * 0.8);
                 s7O.connect(s7G);
-                s7G.connect(ctx.destination);
+                s7G.connect(window.masterGain);
                 s7O.start();
                 s7O.stop(currentTime + duration);
                 window.activeOscillators.add(s7O);
@@ -172,7 +174,7 @@ window.applySoundSettings = (osc, gain, freq, duration, soundType, isDrone = fal
                 s9G.gain.linearRampToValueAtTime(normalizedGain * 0.05, currentTime + 0.1);
                 s9G.gain.exponentialRampToValueAtTime(0.001, currentTime + duration);
                 s9O.connect(s9G);
-                s9G.connect(ctx.destination);
+                s9G.connect(window.masterGain);
                 s9O.start();
                 s9O.stop(currentTime + duration);
                 window.activeOscillators.add(s9O);
@@ -193,7 +195,7 @@ window.applySoundSettings = (osc, gain, freq, duration, soundType, isDrone = fal
                 s10G.gain.linearRampToValueAtTime(normalizedGain * 0.2, currentTime + 0.05);
                 s10G.gain.exponentialRampToValueAtTime(0.001, currentTime + duration);
                 s10O.connect(s10G);
-                s10G.connect(ctx.destination);
+                s10G.connect(window.masterGain);
                 s10O.start();
                 s10O.stop(currentTime + duration);
                 window.activeOscillators.add(s10O);
@@ -238,7 +240,7 @@ window.playPitch = (freq, duration = 0.8, soundType = 'sound1') => {
         window.applySoundSettings(osc, gain, freq, duration, soundType);
 
         osc.connect(gain);
-        gain.connect(window.audioContext.destination);
+        gain.connect(window.masterGain);
 
         osc.start();
         osc.stop(window.audioContext.currentTime + duration);
@@ -286,7 +288,7 @@ window.createDrone = (freq, soundType = 'sound1') => {
     gain.gain.linearRampToValueAtTime(droneGainVal, window.audioContext.currentTime + 0.5);
 
     osc.connect(gain);
-    gain.connect(window.audioContext.destination);
+    gain.connect(window.masterGain);
 
     osc.start();
 
@@ -306,7 +308,6 @@ window.stopDrone = () => {
         }, 500);
     }
 };
-
 const handleMessage = (data) => {
     if (data.type === 'playPitch') {
         window.playPitch(data.freq, data.duration, data.soundType);
@@ -332,6 +333,14 @@ window.addEventListener('message', (event) => {
     try {
         handleMessage(JSON.parse(event.data));
     } catch (e) {}
+});
+
+// Triple-check: handle browser-level visibility
+document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+        if(window.stopAll) window.stopAll();
+        if(window.audioContext) window.audioContext.suspend();
+    }
 });
 `;
 
@@ -360,37 +369,69 @@ const AudioGameContext = createContext<AudioContextType | null>(null);
 export const AudioProvider = ({ children }: { children: React.ReactNode }) => {
     const webviewRef = useRef<WebView>(null);
     const [soundType, setSoundType] = useState<SoundType>('sound1');
+    const activeDroneFreq = useRef<number | null>(null);
+    const [isAppActive, setIsAppActive] = useState(true);
+    const [isWebViewLoaded, setIsWebViewLoaded] = useState(false);
 
     useEffect(() => {
         loadPreference();
-    }, []);
+
+        const handleAppStateChange = (nextAppState: string) => {
+            const active = nextAppState === 'active';
+            if (active !== isAppActive) {
+                if (!active) {
+                    setIsWebViewLoaded(false);
+                }
+                setIsAppActive(active);
+            }
+        };
+
+        const subscription = AppState.addEventListener('change', handleAppStateChange);
+        return () => subscription.remove();
+    }, [isAppActive]);
 
     const loadPreference = async () => {
         const pref = await getSoundPreference();
         setSoundType(pref);
     };
 
+    const handleWebViewLoad = () => {
+        setIsWebViewLoaded(true);
+        // If there was an active drone, restart it now that the environment is ready
+        if (activeDroneFreq.current !== null) {
+            const freq = activeDroneFreq.current;
+            const droneJs = `if(window.createDrone) window.createDrone(${freq}, "${soundType}");`;
+            webviewRef.current?.injectJavaScript(droneJs);
+        }
+    };
+
     const playPitch = (freq: number, duration: number = 0.8, overrideSoundType?: SoundType) => {
         const typeToPlay = overrideSoundType || soundType;
-        webviewRef.current?.postMessage(JSON.stringify({ type: 'playPitch', freq, duration, soundType: typeToPlay }));
+        const js = `if(window.playPitch) window.playPitch(${freq}, ${duration}, "${typeToPlay}");`;
+        webviewRef.current?.injectJavaScript(js);
     };
 
     const createDrone = (freq: number) => {
-        webviewRef.current?.postMessage(JSON.stringify({ type: 'createDrone', freq, soundType }));
+        activeDroneFreq.current = freq;
+        const js = `if(window.createDrone) window.createDrone(${freq}, "${soundType}");`;
+        webviewRef.current?.injectJavaScript(js);
         return {
             stop: () => {
-                webviewRef.current?.postMessage(JSON.stringify({ type: 'stopDrone' }));
+                activeDroneFreq.current = null;
+                webviewRef.current?.injectJavaScript(`if(window.stopDrone) window.stopDrone();`);
             }
         };
     };
 
     const stopAll = () => {
-        webviewRef.current?.postMessage(JSON.stringify({ type: 'stopAll' }));
+        activeDroneFreq.current = null;
+        webviewRef.current?.injectJavaScript(`if(window.stopAll) window.stopAll();`);
     };
 
     const stopPitches = () => {
-        webviewRef.current?.postMessage(JSON.stringify({ type: 'stopPitches' }));
+        webviewRef.current?.injectJavaScript(`if(window.stopPitches) window.stopPitches();`);
     };
+
 
     const updateSoundType = (type: SoundType) => {
         setSoundType(type);
@@ -401,11 +442,13 @@ export const AudioProvider = ({ children }: { children: React.ReactNode }) => {
             {children}
             <View style={{ height: 0, width: 0, position: 'absolute', opacity: 0 }}>
                 <WebView
+                    key={isAppActive ? 'active-audio' : 'inactive-audio'}
                     ref={webviewRef}
-                    source={{ html: htmlContent }}
+                    source={isAppActive ? { html: htmlContent } : { uri: 'about:blank' }}
                     originWhitelist={['*']}
                     javaScriptEnabled={true}
                     mediaPlaybackRequiresUserAction={false}
+                    onLoad={handleWebViewLoad}
                 />
             </View>
         </AudioGameContext.Provider>
