@@ -248,19 +248,21 @@ export default function Game5Screen({ onExit }: Props) {
                             />
 
                             {hasSubmitted && advanceMode === 'slow' && lives > 0 && (
-                                <TouchableOpacity
-                                    style={styles.nextButton}
-                                    onPress={handleNextManual}
-                                >
-                                    <LinearGradient
-                                        colors={['#7234acff', '#4d3090ff']}
-                                        style={styles.nextButtonGradient}
-                                        start={{ x: 0, y: 0 }}
-                                        end={{ x: 1, y: 1 }}
+                                <View style={styles.nextButtonContainer}>
+                                    <TouchableOpacity
+                                        style={styles.nextButton}
+                                        onPress={handleNextManual}
                                     >
-                                        <Text style={styles.nextButtonText}>Next Level</Text>
-                                    </LinearGradient>
-                                </TouchableOpacity>
+                                        <LinearGradient
+                                            colors={['#7234acff', '#4d3090ff']}
+                                            style={styles.nextButtonGradient}
+                                            start={{ x: 0, y: 0 }}
+                                            end={{ x: 1, y: 1 }}
+                                        >
+                                            <Text style={styles.nextButtonText}>Next Level</Text>
+                                        </LinearGradient>
+                                    </TouchableOpacity>
+                                </View>
                             )}
                         </View>
 
@@ -331,12 +333,17 @@ const styles = StyleSheet.create({
         position: 'relative',
     },
 
-    nextButton: {
+    nextButtonContainer: {
         position: 'absolute',
-        bottom: 20,
+        bottom: 0,
+        left: 0,
+        right: 0,
+        alignItems: 'center',
+        paddingVertical: 20,
+    },
+    nextButton: {
         width: '60%',
         height: 50,
-        zIndex: 10,
     },
     nextButtonGradient: {
         flex: 1,
