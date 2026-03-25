@@ -104,9 +104,6 @@ export default function App() {
         if (fontError) {
             console.error('Font loading error:', fontError);
         }
-        if (fontsLoaded) {
-            console.log('Fonts loaded successfully!');
-        }
     }, [fontsLoaded, fontError]);
 
     const onLayoutRootView = useCallback(async () => {

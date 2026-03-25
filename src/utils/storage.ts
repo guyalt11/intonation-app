@@ -8,7 +8,7 @@ const PAUSE_DURATION_KEY = '@pause_duration';
 const ADVANCE_MODE_KEY = '@advance_mode';
 const SCALE_TYPE_KEY = '@scale_type';
 const GAME4_SEQUENCE_KEY = '@game4_sequence';
-
+const ONBOARDING_COMPLETED_KEY = '@onboarding_completed';
 export interface HighScores {
     game1: number;
     game2: number;
@@ -160,5 +160,22 @@ export const saveGame4Sequence = async (sequence: number[]): Promise<void> => {
         await AsyncStorage.setItem(GAME4_SEQUENCE_KEY, JSON.stringify(sequence));
     } catch (e) {
         console.error('Failed to save cadence preference', e);
+    }
+};
+
+export const isOnboardingCompleted = async (): Promise<boolean> => {
+    try {
+        const value = await AsyncStorage.getItem(ONBOARDING_COMPLETED_KEY);
+        return value === 'true';
+    } catch (e) {
+        return false;
+    }
+};
+
+export const setOnboardingCompleted = async (): Promise<void> => {
+    try {
+        await AsyncStorage.setItem(ONBOARDING_COMPLETED_KEY, 'true');
+    } catch (e) {
+        console.error('Failed to save onboarding status', e);
     }
 };

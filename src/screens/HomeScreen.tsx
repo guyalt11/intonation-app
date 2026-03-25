@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, SafeAreaView, Image, Platform, PanResponder, Animated } from 'react-native';
 import { Play, House, Rabbit, AudioWaveform, Library, Trophy, Settings } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { getHighScores, HighScores } from '../utils/storage';
+import { getHighScores, HighScores, isOnboardingCompleted, setOnboardingCompleted } from '../utils/storage';
+import OnboardingTour, { TourStep } from '../components/OnboardingTour';
 
 const GAMES = [
     {
@@ -53,6 +54,93 @@ export default function HomeScreen({ onStartGame, onOpenSettings }: HomeProps) {
 
     // We use a ref to track the last committed rotation value to avoid jumps
     const lastRotation = useRef(0);
+    const [showTour, setShowTour] = useState(false);
+
+    // Refs for tour
+    const logoRef = useRef<View>(null);
+    const settingsRef = useRef<View>(null);
+    const gameRefs = useRef<(View | null)[]>([]);
+    const scrollViewRef = useRef<ScrollView>(null);
+
+    useEffect(() => {
+        const checkTour = async () => {
+            const completed = await isOnboardingCompleted();
+            if (!completed) {
+                setTimeout(() => setShowTour(true), 1000);
+            }
+        };
+        checkTour();
+    }, []);
+
+    const tourSteps: TourStep[] = [
+        {
+            id: 'settings',
+            targetRef: settingsRef,
+            title: 'Preferences & Settings',
+            description: 'Customize sounds, speed, difficulties, scales and more via the settings page.',
+            placement: 'bottom'
+        },
+        {
+            id: 'game-1',
+            targetRef: { current: gameRefs.current[0] },
+            title: 'Basic note comparison',
+            description: 'Two notes are played. Answer whether the second note is higher or lower than the first note.',
+            placement: 'bottom'
+        },
+        {
+            id: 'game-2',
+            targetRef: { current: gameRefs.current[1] },
+            title: 'Speed Challenge',
+            description: 'Only one note is played. Answer whether it is higher or lower than the note from the previous level.',
+            placement: 'bottom'
+        },
+        {
+            id: 'game-3',
+            targetRef: { current: gameRefs.current[2] },
+            title: 'Drone comparison',
+            description: 'A drone is constantly playing. For each note, answer weather it is higher or lower than the drone.',
+            placement: 'top'
+        },
+        {
+            id: 'game-4',
+            targetRef: { current: gameRefs.current[3] },
+            title: 'Resolution out of tune',
+            description: 'Listen to a cadence sequence and answer weather the last note (the resolution) is too high or too low. (Cadence can be specified in Settings, default is 5-6-7-1)',
+            placement: 'top'
+        },
+        {
+            id: 'game-5',
+            targetRef: { current: gameRefs.current[4] },
+            title: 'Out of tune scale',
+            description: 'One note in this scale is out of tune. Identify which one, and weather it is too high or too low.',
+            placement: 'top'
+        }
+    ];
+
+    const handleStepChange = (index: number) => {
+        const step = tourSteps[index];
+        if (step && step.targetRef?.current && scrollViewRef.current) {
+            // Check if this is a game step (games are inside the ScrollView)
+            if (step.id.startsWith('game-')) {
+                step.targetRef.current.measureLayout(
+                    // @ts-ignore - measuring relative to scrollView
+                    scrollViewRef.current,
+                    (x, y) => {
+                        scrollViewRef.current?.scrollTo({
+                            y: Math.max(0, y - 100), // Scroll with a bit of top margin
+                            animated: true
+                        });
+                    },
+                    (error) => {}
+                );
+            }
+        }
+    };
+
+    const handleTourComplete = async () => {
+        setShowTour(false);
+        await setOnboardingCompleted();
+    };
 
     const panResponder = useRef(
         PanResponder.create({
@@ -77,7 +165,7 @@ export default function HomeScreen({ onStartGame, onOpenSettings }: HomeProps) {
 
     useEffect(() => {
         const loadScores = async () => {
-            console.log('Fetching high scores in HomeScreen...');
+
             const scores = await getHighScores();
             setHighScores(scores);
         };
@@ -92,6 +180,7 @@ export default function HomeScreen({ onStartGame, onOpenSettings }: HomeProps) {
             <SafeAreaView style={styles.safeArea}>
                 <View style={[styles.header, { position: 'relative' }]}>
                     <TouchableOpacity
+                        ref={settingsRef}
                         style={styles.settingsButton}
                         onPress={onOpenSettings}
                     >
@@ -99,6 +188,7 @@ export default function HomeScreen({ onStartGame, onOpenSettings }: HomeProps) {
                     </TouchableOpacity>
 
                     <Animated.View
+                        ref={logoRef}
                         {...panResponder.panHandlers}
                         style={{
                             flexDirection: 'row',
@@ -121,10 +211,14 @@ export default function HomeScreen({ onStartGame, onOpenSettings }: HomeProps) {
                     </Animated.View>
                 </View>
 
-                <ScrollView contentContainerStyle={styles.gamesList}>
+                <ScrollView
+                    ref={scrollViewRef}
+                    contentContainerStyle={styles.gamesList}
+                >
                     {GAMES.map((game, i) => (
                         <View
                             key={game.id}
+                            ref={el => { gameRefs.current[i] = el; }}
                         >
                             <TouchableOpacity
                                 activeOpacity={0.9}
@@ -164,6 +258,13 @@ export default function HomeScreen({ onStartGame, onOpenSettings }: HomeProps) {
                         © {new Date().getFullYear()} Guy Altmann. All rights reserved.
                     </Text>
                 </View>
+
+                <OnboardingTour
+                    steps={tourSteps}
+                    visible={showTour}
+                    onComplete={handleTourComplete}
+                    onStepChange={handleStepChange}
+                />
             </SafeAreaView>
         </LinearGradient>
     );

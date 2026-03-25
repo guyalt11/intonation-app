@@ -1,7 +1,7 @@
 
+import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Animated, Easing } from 'react-native';
 import { Music, Zap } from 'lucide-react-native';
-import { useEffect, useRef } from 'react';
 
 interface Props {
     isPlaying: boolean;
