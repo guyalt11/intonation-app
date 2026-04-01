@@ -12,8 +12,9 @@ import {
 import Svg, { Defs, Mask, Rect as SvgRect } from 'react-native-svg';
 import { ChevronRight, ChevronLeft, X } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import Constants from 'expo-constants';
 
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('screen');
 
 export interface TourStep {
     targetRef: React.RefObject<View | null>;
@@ -32,7 +33,10 @@ interface OnboardingTourProps {
 
 export default function OnboardingTour({ steps, visible, onComplete, onStepChange }: OnboardingTourProps) {
     const [currentStepIndex, setCurrentStepIndex] = useState(0);
-    const [layout, setLayout] = useState<{ x: number, y: number, width: number, height: number } | null>(null);
+    const [layout, setLayout] = useState<{
+        x: number, y: number, width: number, height: number, overlayWidth: number, overlayHeight: number
+    } | null>(null);
+    const overlayRef = useRef<View>(null);
 
     const fadeAnim = useRef(new Animated.Value(0)).current;
     const bubbleAnim = useRef(new Animated.Value(0)).current;
@@ -52,38 +56,50 @@ export default function OnboardingTour({ steps, visible, onComplete, onStepChang
     const measureStep = () => {
         if (!currentStep?.targetRef?.current) return;
 
-        currentStep.targetRef.current.measureInWindow((x, y, width, height) => {
-            setLayout({ x, y, width, height });
+        // Determine the absolute root position of both the target and our overlay.
+        // By subtracting them, we get the MATHEMATICALLY EXACT pixel offset within the same view node structure,
+        // side-stepping every single OS-specific padding, safe area, and status-bar quirk completely!
+        overlayRef.current.measure((_ox, _oy, owidth, oheight, opageX, opageY) => {
+            currentStep.targetRef.current?.measure((x, y, width, height, pageX, pageY) => {
+                setLayout({
+                    x: pageX - (opageX || 0),
+                    y: pageY - (opageY || 0),
+                    width,
+                    height,
+                    overlayWidth: owidth || SCREEN_WIDTH,
+                    overlayHeight: oheight || SCREEN_HEIGHT
+                });
 
-            // Animate in
-            Animated.parallel([
-                Animated.timing(fadeAnim, {
-                    toValue: 1,
-                    duration: 400,
-                    useNativeDriver: true,
-                }),
-                Animated.spring(bubbleAnim, {
-                    toValue: 1,
-                    friction: 8,
-                    useNativeDriver: true,
-                })
-            ]).start();
-
-            // Start the glow loop
-            Animated.loop(
-                Animated.sequence([
-                    Animated.timing(glowAnim, {
+                // Animate in
+                Animated.parallel([
+                    Animated.timing(fadeAnim, {
                         toValue: 1,
-                        duration: 1500,
+                        duration: 400,
                         useNativeDriver: true,
                     }),
-                    Animated.timing(glowAnim, {
-                        toValue: 0,
-                        duration: 1500,
+                    Animated.spring(bubbleAnim, {
+                        toValue: 1,
+                        friction: 8,
                         useNativeDriver: true,
                     })
-                ])
-            ).start();
+                ]).start();
+
+                // Start the glow loop
+                Animated.loop(
+                    Animated.sequence([
+                        Animated.timing(glowAnim, {
+                            toValue: 1,
+                            duration: 1500,
+                            useNativeDriver: true,
+                        }),
+                        Animated.timing(glowAnim, {
+                            toValue: 0,
+                            duration: 1500,
+                            useNativeDriver: true,
+                        })
+                    ])
+                ).start();
+            });
         });
     };
 
@@ -124,175 +140,191 @@ export default function OnboardingTour({ steps, visible, onComplete, onStepChang
         });
     };
 
-    if (!visible || !layout) return null;
+    if (!visible) return null;
 
-    const gap = 25;
-    const isBubbleAtBottom = (layout.y + layout.height + 200) > SCREEN_HEIGHT;
-    const placement = currentStep.placement || (isBubbleAtBottom ? 'top' : 'bottom');
+    // Calculate layout dependent values if layout exists
+    let bubbleContainerStyle: any = null;
+    let expansionPx = 8;
+    let scaleX = 1;
+    let scaleY = 1;
+    let targetCenterX = 0;
+    let arrowLeft = 0;
+    let placement: 'top' | 'bottom' = 'bottom';
 
-    const bubbleContainerStyle: any = {
-        opacity: fadeAnim,
-        transform: [
-            { scale: bubbleAnim },
-            {
-                translateY: bubbleAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [placement === 'top' ? -20 : 20, 0]
-                })
-            }
-        ]
-    };
+    if (layout) {
+        const gap = 25;
+        const isBubbleAtBottom = (layout.y + layout.height + 200) > layout.overlayHeight;
+        placement = currentStep.placement || (isBubbleAtBottom ? 'top' : 'bottom');
 
-    if (placement === 'bottom') {
-        bubbleContainerStyle.top = layout.y + layout.height + gap;
-    } else {
-        bubbleContainerStyle.bottom = SCREEN_HEIGHT - layout.y + gap;
+        bubbleContainerStyle = {
+            opacity: fadeAnim,
+            transform: [
+                { scale: bubbleAnim },
+                {
+                    translateY: bubbleAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [placement === 'top' ? -20 : 20, 0]
+                    })
+                }
+            ]
+        };
+
+        if (placement === 'bottom') {
+            bubbleContainerStyle.top = layout.y + layout.height + gap;
+        } else {
+            bubbleContainerStyle.bottom = layout.overlayHeight - layout.y + gap;
+        }
+
+        // Breathing scale: make expansion equal in pixels on both axes (e.g. 10px)
+        scaleX = (layout.width + expansionPx) / layout.width;
+        scaleY = (layout.height + expansionPx) / layout.height;
+
+        // Center the arrow relative to the target
+        targetCenterX = layout.x + layout.width / 2;
+        const arrowLeftRaw = targetCenterX - 20 - 10;
+        const containerWidth = layout.overlayWidth - 40;
+        arrowLeft = Math.max(10, Math.min(containerWidth - 30, arrowLeftRaw));
     }
 
-    // Breathing scale: make expansion equal in pixels on both axes (e.g. 10px)
-    const expansionPx = 8;
-    const scaleX = (layout.width + expansionPx) / layout.width;
-    const scaleY = (layout.height + expansionPx) / layout.height;
-
-    // Center the arrow relative to the target
-    const targetCenterX = layout.x + layout.width / 2;
-    const arrowLeftRaw = targetCenterX - 20 - 10;
-    const containerWidth = SCREEN_WIDTH - 40;
-    const arrowLeft = Math.max(10, Math.min(containerWidth - 30, arrowLeftRaw));
-
     return (
-        <Modal transparent visible={visible} animationType="none">
-            <View style={styles.overlay}>
-                {/* Background Mask */}
-                <Svg height="100%" width="100%" style={StyleSheet.absoluteFill}>
-                    <Defs>
-                        <Mask id="mask">
-                            <SvgRect height="100%" width="100%" fill="white" />
-                            <SvgRect
-                                x={layout.x - 4}
-                                y={layout.y - 4}
-                                width={layout.width + 8}
-                                height={layout.height + 8}
-                                rx={28}
-                                fill="black"
-                            />
-                        </Mask>
-                    </Defs>
-                    <SvgRect
-                        height="100%"
-                        width="100%"
-                        fill="rgba(0, 0, 0, 0.82)"
-                        mask="url(#mask)"
+        <View
+            ref={overlayRef}
+            style={[StyleSheet.absoluteFill, styles.overlay]}
+        >
+            {layout && (
+                <>
+                    {/* Background Mask */}
+                    <Svg height="100%" width="100%" style={StyleSheet.absoluteFill}>
+                        <Defs>
+                            <Mask id="mask">
+                                <SvgRect height="100%" width="100%" fill="white" />
+                                <SvgRect
+                                    x={layout.x - 4}
+                                    y={layout.y - 4}
+                                    width={layout.width + 8}
+                                    height={layout.height + 8}
+                                    rx={28}
+                                    fill="black"
+                                />
+                            </Mask>
+                        </Defs>
+                        <SvgRect
+                            height="100%"
+                            width="100%"
+                            fill="rgba(0, 0, 0, 0.82)"
+                            mask="url(#mask)"
+                        />
+                    </Svg>
+
+                    {/* Glowing border around target */}
+                    <Animated.View
+                        pointerEvents="none"
+                        style={[
+                            styles.spotlightBorder,
+                            {
+                                top: layout.y - 6,
+                                left: layout.x - 6,
+                                width: layout.width + 12,
+                                height: layout.height + 12,
+                                opacity: fadeAnim,
+                                transform: [
+                                    {
+                                        scaleX: glowAnim.interpolate({
+                                            inputRange: [0, 1],
+                                            outputRange: [1, scaleX]
+                                        })
+                                    },
+                                    {
+                                        scaleY: glowAnim.interpolate({
+                                            inputRange: [0, 1],
+                                            outputRange: [1, scaleY]
+                                        })
+                                    }
+                                ]
+                            }
+                        ]}
                     />
-                </Svg>
 
-                {/* Glowing border around target */}
-                <Animated.View
-                    pointerEvents="none"
-                    style={[
-                        styles.spotlightBorder,
-                        {
-                            top: layout.y - 6,
-                            left: layout.x - 6,
-                            width: layout.width + 12,
-                            height: layout.height + 12,
-                            opacity: fadeAnim,
-                            transform: [
-                                {
-                                    scaleX: glowAnim.interpolate({
-                                        inputRange: [0, 1],
-                                        outputRange: [1, scaleX]
-                                    })
-                                },
-                                {
-                                    scaleY: glowAnim.interpolate({
-                                        inputRange: [0, 1],
-                                        outputRange: [1, scaleY]
-                                    })
-                                }
-                            ]
-                        }
-                    ]}
-                />
-
-                <Animated.View
-                    style={[
-                        styles.bubbleContainer,
-                        bubbleContainerStyle
-                    ]}
-                >
-                    <LinearGradient
-                        colors={['#2A1447', '#1D0B2E']}
-                        style={styles.bubble}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 1 }}
+                    <Animated.View
+                        style={[
+                            styles.bubbleContainer,
+                            bubbleContainerStyle
+                        ]}
                     >
-                        <View style={[
-                            styles.arrow,
-                            placement === 'top' ? styles.arrowBottom : styles.arrowTop,
-                            { left: arrowLeft }
-                        ]} />
+                        <LinearGradient
+                            colors={['#2A1447', '#1D0B2E']}
+                            style={styles.bubble}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                        >
+                            <View style={[
+                                styles.arrow,
+                                placement === 'top' ? styles.arrowBottom : styles.arrowTop,
+                                { left: arrowLeft }
+                            ]} />
 
-                        <View style={styles.bubbleHeader}>
-                            <View style={styles.dotContainer}>
-                                {steps.map((_, i) => (
-                                    <View
-                                        key={i}
-                                        style={[
-                                            styles.progessDot,
-                                            i === currentStepIndex && styles.activeDot,
-                                            i < currentStepIndex && styles.completedDot
-                                        ]}
-                                    />
-                                ))}
-                            </View>
-                            <TouchableOpacity onPress={finish} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                                <X size={16} color="rgba(255,255,255,0.4)" />
-                            </TouchableOpacity>
-                        </View>
-
-                        <Text style={styles.title}>{currentStep.title}</Text>
-                        <Text style={styles.description}>{currentStep.description}</Text>
-
-                        <View style={styles.footerRow}>
-                            {currentStepIndex > 0 && (
-                                <TouchableOpacity
-                                    activeOpacity={0.7}
-                                    style={styles.backButton}
-                                    onPress={prevStep}
-                                >
-                                    <ChevronLeft size={24} color="rgba(255,255,255,0.7)" />
+                            <View style={styles.bubbleHeader}>
+                                <View style={styles.dotContainer}>
+                                    {steps.map((_, i) => (
+                                        <View
+                                            key={i}
+                                            style={[
+                                                styles.progessDot,
+                                                i === currentStepIndex && styles.activeDot,
+                                                i < currentStepIndex && styles.completedDot
+                                            ]}
+                                        />
+                                    ))}
+                                </View>
+                                <TouchableOpacity onPress={finish} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                                    <X size={16} color="rgba(255,255,255,0.4)" />
                                 </TouchableOpacity>
-                            )}
-                            
-                            <TouchableOpacity
-                                activeOpacity={0.8}
-                                style={[styles.nextButton, { flex: 1 }]}
-                                onPress={nextStep}
-                            >
-                                <LinearGradient
-                                    colors={['#a855f7', '#7c3aed']}
-                                    style={styles.nextGradient}
-                                    start={{ x: 0, y: 0 }}
-                                    end={{ x: 1, y: 1 }}
+                            </View>
+
+                            <Text style={styles.title}>{currentStep.title}</Text>
+                            <Text style={styles.description}>{currentStep.description}</Text>
+
+                            <View style={styles.footerRow}>
+                                {currentStepIndex > 0 && (
+                                    <TouchableOpacity
+                                        activeOpacity={0.7}
+                                        style={styles.backButton}
+                                        onPress={prevStep}
+                                    >
+                                        <ChevronLeft size={24} color="rgba(255,255,255,0.7)" />
+                                    </TouchableOpacity>
+                                )}
+
+                                <TouchableOpacity
+                                    activeOpacity={0.8}
+                                    style={[styles.nextButton, { flex: 1 }]}
+                                    onPress={nextStep}
                                 >
-                                    <Text style={styles.nextText}>
-                                        {currentStepIndex === steps.length - 1 ? 'Got it!' : 'Next'}
-                                    </Text>
-                                    <ChevronRight size={18} color="white" />
-                                </LinearGradient>
-                            </TouchableOpacity>
-                        </View>
-                    </LinearGradient>
-                </Animated.View>
-            </View>
-        </Modal>
+                                    <LinearGradient
+                                        colors={['#a855f7', '#7c3aed']}
+                                        style={styles.nextGradient}
+                                        start={{ x: 0, y: 0 }}
+                                        end={{ x: 1, y: 1 }}
+                                    >
+                                        <Text style={styles.nextText}>
+                                            {currentStepIndex === steps.length - 1 ? 'Got it!' : 'Next'}
+                                        </Text>
+                                        <ChevronRight size={18} color="white" />
+                                    </LinearGradient>
+                                </TouchableOpacity>
+                            </View>
+                        </LinearGradient>
+                    </Animated.View>
+                </>
+            )}
+        </View>
     );
 }
 
 const styles = StyleSheet.create({
     overlay: {
-        flex: 1,
+        zIndex: 9999,
+        elevation: 9999,
     },
     spotlightBorder: {
         position: 'absolute',
@@ -303,7 +335,6 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 0, height: 0 },
         shadowOpacity: 0.8,
         shadowRadius: 10,
-        elevation: 10,
     },
     bubbleContainer: {
         position: 'absolute',

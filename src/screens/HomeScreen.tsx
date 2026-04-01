@@ -112,7 +112,7 @@ export default function HomeScreen({ onStartGame, onOpenSettings }: HomeProps) {
             id: 'game-5',
             targetRef: { current: gameRefs.current[4] },
             title: 'Out of tune scale',
-            description: 'One note in this scale is out of tune. Identify which one, and weather it is too high or too low.',
+            description: 'One note in this scale is out of tune. Identify which one, and weather it is too high or too low. (Scale can be changed via Settings, default is major)',
             placement: 'top'
         }
     ];
@@ -131,7 +131,7 @@ export default function HomeScreen({ onStartGame, onOpenSettings }: HomeProps) {
                             animated: true
                         });
                     },
-                    (error) => {}
+                    (error) => { }
                 );
             }
         }
